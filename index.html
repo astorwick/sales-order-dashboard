@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Operations Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Operations Dashboard</h1>
+      <div class="refresh-info">
+        <span id="last-updated">Loading...</span>
+        <button id="refresh-btn" class="refresh-btn">Refresh</button>
+      </div>
+    </header>
+
+    <!-- Tab Navigation -->
+    <nav class="tab-nav">
+      <a href="#/orders" class="tab-link active" data-tab="orders">Unshipped Orders</a>
+      <a href="#/canceled" class="tab-link" data-tab="canceled">Canceled Orders</a>
+      <a href="#/inventory" class="tab-link" data-tab="inventory">Shopify Run Rate (WIP)</a>
+      <a href="#/parcel-sla" class="tab-link" data-tab="parcel-sla">Parcel SLA</a>
+      <a href="#/ftl-ltl" class="tab-link" data-tab="ftl-ltl">FTL/LTL</a>
+      <a href="#/inbound-sla" class="tab-link" data-tab="inbound-sla">Inbound SLA</a>
+      <a href="#/returns" class="tab-link" data-tab="returns">Returns</a>
+      <a href="#/trivia" class="tab-link" data-tab="trivia">Trivia Game</a>
+      <a href="#/sw-trivia" class="tab-link" data-tab="sw-trivia">Star Wars Trivia (Hard)</a>
+    </nav>
+
+    <!-- Orders View -->
+    <div id="view-orders" class="view-panel">
+      <!-- Summary Cards -->
+      <div class="summary-cards">
+        <div class="summary-card">
+          <div class="label">Total Unfulfilled</div>
+          <div class="value" id="summary-total">-</div>
+        </div>
+        <div class="summary-card stuck">
+          <div class="label">Stuck</div>
+          <div class="value" id="summary-stuck">-</div>
+        </div>
+        <div class="summary-card missing-tracking">
+          <div class="label">Missing Tracking</div>
+          <div class="value" id="summary-missing-tracking">-</div>
+        </div>
+        <div class="summary-card unshippable">
+          <div class="label">Unshippable</div>
+          <div class="value" id="summary-unshippable">-</div>
+        </div>
+        <div class="summary-card warning">
+          <div class="label">Warning</div>
+          <div class="value" id="summary-warning">-</div>
+        </div>
+        <div class="summary-card ok">
+          <div class="label">On Track</div>
+          <div class="value" id="summary-ok">-</div>
+        </div>
+        <div class="summary-card complete">
+          <div class="label">Shipped</div>
+          <div class="value" id="summary-complete">-</div>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters">
+        <div class="filter-group">
+          <label for="stage-filter">Stage:</label>
+          <select id="stage-filter">
+            <option value="all">All Stages</option>
+            <option value="shopify">Shopify</option>
+            <option value="sap">SAP ERP</option>
+            <option value="3pl_request">3PL Request Sent</option>
+            <option value="warehouse_received">Warehouse Received</option>
+            <option value="shipped">Shipped</option>
+            <option value="tracking">Tracking</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="status-filter">Status:</label>
+          <select id="status-filter">
+            <option value="all">All Statuses</option>
+            <option value="unshippable">Unshippable</option>
+            <option value="missing_tracking">Missing Tracking</option>
+            <option value="stuck">Stuck</option>
+            <option value="warning">Warning</option>
+            <option value="ok">On Track</option>
+            <option value="complete">Complete</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="search-input">Search:</label>
+          <input type="text" id="search-input" placeholder="Order # or customer...">
+        </div>
+        <div class="filter-group">
+          <label for="days-filter">Date Range:</label>
+          <select id="days-filter">
+            <option value="1">Last 24 hours</option>
+            <option value="3">Last 3 days</option>
+            <option value="7" selected>Last 7 days</option>
+            <option value="14">Last 14 days</option>
+            <option value="30">Last 30 days</option>
+            <option value="60">Last 60 days</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="sort-filter">Sort By:</label>
+          <select id="sort-filter">
+            <option value="status">Status (Stuck First)</option>
+            <option value="created-desc" selected>Created (Newest)</option>
+            <option value="created-asc">Created (Oldest)</option>
+            <option value="order-desc">Order # (Highest)</option>
+            <option value="order-asc">Order # (Lowest)</option>
+          </select>
+        </div>
+        <div class="filter-group export-group">
+          <button id="export-orders-btn" class="export-btn">Export CSV</button>
+        </div>
+      </div>
+
+      <!-- Orders Table -->
+      <div class="orders-table-container">
+        <table class="orders-table">
+          <thead>
+            <tr>
+              <th>Order #</th>
+              <th>Customer</th>
+              <th>Vendor(s)</th>
+              <th>Created</th>
+              <th>UNIS Shipped</th>
+              <th>Current Stage</th>
+              <th>Time in Stage</th>
+              <th>Status</th>
+              <th>Possible Cause</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody id="orders-list">
+            <tr>
+              <td colspan="10" class="loading">
+                <div class="loading-spinner"></div>
+                <p>Loading orders...</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Inventory View -->
+    <div id="view-inventory" class="view-panel" style="display: none;">
+      <!-- Inventory Summary Cards -->
+      <div class="summary-cards">
+        <div class="summary-card">
+          <div class="label">Total SKUs</div>
+          <div class="value" id="inv-summary-total-skus">-</div>
+        </div>
+        <div class="summary-card">
+          <div class="label">Total Available</div>
+          <div class="value" id="inv-summary-total-available">-</div>
+        </div>
+        <div class="summary-card inv-critical">
+          <div class="label">Critical (&lt;4 wks)</div>
+          <div class="value" id="inv-summary-critical">-</div>
+        </div>
+        <div class="summary-card inv-low">
+          <div class="label">Low (&lt;8 wks)</div>
+          <div class="value" id="inv-summary-low">-</div>
+        </div>
+        <div class="summary-card inv-healthy">
+          <div class="label">Healthy (&gt;8 wks)</div>
+          <div class="value" id="inv-summary-healthy">-</div>
+        </div>
+        <div class="summary-card inv-nosales">
+          <div class="label">No Sales</div>
+          <div class="value" id="inv-summary-nosales">-</div>
+        </div>
+      </div>
+
+      <!-- Inventory Filters -->
+      <div class="filters">
+        <div class="filter-group">
+          <label for="inv-search">Search:</label>
+          <input type="text" id="inv-search" placeholder="SKU or description...">
+        </div>
+        <div class="filter-group">
+          <label for="inv-stock-filter">Stock Level:</label>
+          <select id="inv-stock-filter">
+            <option value="all">All Levels</option>
+            <option value="critical">Critical</option>
+            <option value="low">Low</option>
+            <option value="healthy">Healthy</option>
+            <option value="no-sales">No Sales</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="inv-sort">Sort By:</label>
+          <select id="inv-sort">
+            <option value="stock-asc">Est. Weeks (Lowest)</option>
+            <option value="stock-desc">Est. Weeks (Highest)</option>
+            <option value="onhand-desc">On Hand (Highest)</option>
+            <option value="onhand-asc">On Hand (Lowest)</option>
+            <option value="velocity-desc">Velocity (Highest)</option>
+            <option value="sku-asc">SKU (A-Z)</option>
+          </select>
+        </div>
+        <div class="filter-group export-group">
+          <button id="export-inv-btn" class="export-btn">Export CSV</button>
+        </div>
+      </div>
+
+      <!-- Inventory Table -->
+      <div class="orders-table-container inv-table-container">
+        <table class="orders-table inv-table">
+          <thead>
+            <tr class="inv-header-group">
+              <th rowspan="2">SKU</th>
+              <th rowspan="2">Description</th>
+              <th rowspan="2">Available</th>
+              <th colspan="4" class="period-header period-7d">7 Day</th>
+              <th colspan="4" class="period-header period-14d">14 Day</th>
+              <th colspan="4" class="period-header period-30d">30 Day</th>
+              <th rowspan="2">Est. Weeks</th>
+              <th rowspan="2">Stock Level</th>
+            </tr>
+            <tr class="inv-header-sub">
+              <th class="period-7d">Sold</th>
+              <th class="period-7d">/ Day</th>
+              <th class="period-7d">/ Wk</th>
+              <th class="period-7d">% Inv</th>
+              <th class="period-14d">Sold</th>
+              <th class="period-14d">/ Day</th>
+              <th class="period-14d">/ Wk</th>
+              <th class="period-14d">% Inv</th>
+              <th class="period-30d">Sold</th>
+              <th class="period-30d">/ Day</th>
+              <th class="period-30d">/ Wk</th>
+              <th class="period-30d">% Inv</th>
+            </tr>
+          </thead>
+          <tbody id="inv-table-body">
+            <tr>
+              <td colspan="17" class="loading">
+                <p>Navigate to this tab to load inventory data.</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Parcel SLA View -->
+    <div id="view-parcel-sla" class="view-panel" style="display: none;">
+      <!-- Summary Cards -->
+      <div class="summary-cards">
+        <div class="summary-card">
+          <div class="label">Total Shipped</div>
+          <div class="value" id="parcel-summary-total">-</div>
+        </div>
+        <div class="summary-card ok">
+          <div class="label">Within SLA (36h)</div>
+          <div class="value" id="parcel-summary-within-sla">-</div>
+        </div>
+        <div class="summary-card stuck">
+          <div class="label">Past SLA</div>
+          <div class="value" id="parcel-summary-past-sla">-</div>
+        </div>
+        <div class="summary-card parcel-ups">
+          <div class="label">UPS</div>
+          <div class="value" id="parcel-summary-ups">-</div>
+        </div>
+        <div class="summary-card parcel-usps">
+          <div class="label">USPS</div>
+          <div class="value" id="parcel-summary-usps">-</div>
+        </div>
+        <div class="summary-card parcel-fedex">
+          <div class="label">FedEx</div>
+          <div class="value" id="parcel-summary-fedex">-</div>
+        </div>
+        <div class="summary-card parcel-amazon">
+          <div class="label">AmazonShip</div>
+          <div class="value" id="parcel-summary-amazon">-</div>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters">
+        <div class="filter-group">
+          <label for="parcel-days-filter">Date Range:</label>
+          <select id="parcel-days-filter">
+            <option value="7" selected>Last 7 days</option>
+            <option value="14">Last 14 days</option>
+            <option value="30">Last 30 days</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="parcel-sla-filter">SLA:</label>
+          <select id="parcel-sla-filter">
+            <option value="all">All</option>
+            <option value="within-sla">Within SLA</option>
+            <option value="past-sla">Past SLA</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="parcel-carrier-filter">Carrier:</label>
+          <select id="parcel-carrier-filter">
+            <option value="all">All Carriers</option>
+            <option value="UPS">UPS</option>
+            <option value="USPS">USPS</option>
+            <option value="FEDEX">FedEx</option>
+            <option value="AMAZON">AmazonShip</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="parcel-sort-filter">Sort By:</label>
+          <select id="parcel-sort-filter">
+            <option value="shipped-desc" selected>Shipped (Newest)</option>
+            <option value="shipped-asc">Shipped (Oldest)</option>
+            <option value="created-desc">Created (Newest)</option>
+            <option value="created-asc">Created (Oldest)</option>
+            <option value="po-asc">PO # (Ascending)</option>
+            <option value="sla-asc">SLA (Shortest)</option>
+            <option value="sla-desc">SLA (Longest)</option>
+          </select>
+        </div>
+        <div class="filter-group parcel-date-range">
+          <label>Created:</label>
+          <input type="date" id="parcel-created-from" title="Created from">
+          <span class="date-sep">–</span>
+          <input type="date" id="parcel-created-to" title="Created to">
+        </div>
+        <div class="filter-group parcel-date-range">
+          <label>Shipped:</label>
+          <input type="date" id="parcel-shipped-from" title="Shipped from">
+          <span class="date-sep">–</span>
+          <input type="date" id="parcel-shipped-to" title="Shipped to">
+        </div>
+      </div>
+
+      <!-- Parcel SLA Table -->
+      <div class="orders-table-container">
+        <table class="orders-table">
+          <thead>
+            <tr>
+              <th>Order #</th>
+              <th>PO #</th>
+              <th>Created</th>
+              <th>Shipped</th>
+              <th>SLA (hrs)</th>
+              <th>Tracking ID</th>
+              <th>Carrier</th>
+            </tr>
+          </thead>
+          <tbody id="parcel-sla-list">
+            <tr>
+              <td colspan="7" class="loading">
+                <p>Navigate to this tab to load parcel SLA data.</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+    <!-- Trivia Game View -->
+    <div id="view-trivia" class="view-panel" style="display: none;">
+      <div class="trivia-container">
+        <div class="trivia-score-bar">
+          <div class="trivia-score correct">Correct: <span id="trivia-correct">0</span></div>
+          <div class="trivia-score incorrect">Wrong: <span id="trivia-incorrect">0</span></div>
+          <div class="trivia-warning">Scores reset if you refresh the page</div>
+        </div>
+
+        <div class="trivia-card">
+          <div class="trivia-category" id="trivia-category"></div>
+          <div class="trivia-question" id="trivia-question"></div>
+          <div class="trivia-choices" id="trivia-choices"></div>
+          <div class="trivia-feedback" id="trivia-feedback"></div>
+          <button class="trivia-next-btn" id="trivia-next-btn" style="display: none;">Next Question</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <!-- Star Wars Trivia View -->
+    <div id="view-sw-trivia" class="view-panel" style="display: none;">
+      <div class="trivia-container">
+        <div class="trivia-score-bar">
+          <div class="trivia-score correct">Correct: <span id="sw-trivia-correct">0</span></div>
+          <div class="trivia-score incorrect">Wrong: <span id="sw-trivia-incorrect">0</span></div>
+          <div class="trivia-warning">Scores reset if you refresh the page</div>
+        </div>
+
+        <div class="trivia-card">
+          <div class="trivia-category" id="sw-trivia-category"></div>
+          <div class="trivia-question" id="sw-trivia-question"></div>
+          <div class="trivia-choices" id="sw-trivia-choices"></div>
+          <div class="trivia-feedback" id="sw-trivia-feedback"></div>
+          <button class="trivia-next-btn" id="sw-trivia-next-btn" style="display: none;">Next Question</button>
+        </div>
+      </div>
+    </div>
+
+  <script src="app.js"></script>
+  <script src="inventory.js"></script>
+  <script src="parcel-sla.js"></script>
+  <script src="trivia.js"></script>
+  <script src="sw-trivia.js"></script>
+</body>
+</html>

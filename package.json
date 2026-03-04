@@ -1,0 +1,15 @@
+{
+  "name": "sales-order-dashboard",
+  "version": "1.0.0",
+  "description": "Sales Order Tracking Dashboard - tracks orders through 5 stages",
+  "main": "api/orders.js",
+  "scripts": {
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "node-fetch": "^2.7.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
