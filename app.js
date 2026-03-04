@@ -497,13 +497,9 @@ async function init() {
   window.addEventListener('hashchange', handleRouteChange);
   handleRouteChange();
 
-  // Load config and orders
-  try {
-    await fetchConfig();
-    await loadOrders();
-  } catch (error) {
-    console.error('Initialization error:', error);
-  }
+  // Load config (non-blocking) and orders
+  fetchConfig().catch(err => console.error('Config error:', err));
+  await loadOrders();
 }
 
 // Start the app when DOM is ready
