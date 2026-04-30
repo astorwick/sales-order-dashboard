@@ -14,6 +14,7 @@ let filters = {
 };
 let inventoryLoaded = false;
 let parcelSlaLoaded = false;
+let uspsTrackerLoaded = false;
 let currentTab = '#/orders';
 let tabLastUpdated = {};
 
@@ -199,6 +200,7 @@ function renderOrderRow(order) {
       <td><span class="vendor-list ${order.shippable === false ? 'not-shippable' : ''}">${vendorDisplay}</span></td>
       <td>${formatDate(order.createdAt)}</td>
       <td>${order.unisShippedDate ? formatDate(order.unisShippedDate) : '-'}</td>
+      <td>${order.trackingNumber ? escapeHtml(order.trackingNumber) : '-'}</td>
       <td>
         <div class="stage-indicator">
           ${renderStageIndicator(order.stageIndex)}
@@ -358,6 +360,8 @@ function showTabLastUpdated() {
 function refreshCurrentTab() {
   if (currentTab === '#/orders') {
     loadOrders();
+  } else if (currentTab === '#/usps-tracker' && typeof loadUSPSTracker === 'function') {
+    loadUSPSTracker();
   } else if (currentTab === '#/inventory' && typeof loadInventory === 'function') {
     loadInventory();
   } else if (currentTab === '#/parcel-sla' && typeof loadParcelSla === 'function') {
@@ -371,6 +375,8 @@ function handleRouteChange() {
   currentTab = hash;
   const tabLinks = document.querySelectorAll('.tab-link');
   const viewOrders = document.getElementById('view-orders');
+  const viewOrdersCa = document.getElementById('view-orders-ca');
+  const viewUspsTracker = document.getElementById('view-usps-tracker');
   const viewInventory = document.getElementById('view-inventory');
   const viewParcelSla = document.getElementById('view-parcel-sla');
   const viewTrivia = document.getElementById('view-trivia');
@@ -383,6 +389,8 @@ function handleRouteChange() {
 
   // Hide all views
   viewOrders.style.display = 'none';
+  viewOrdersCa.style.display = 'none';
+  viewUspsTracker.style.display = 'none';
   viewInventory.style.display = 'none';
   viewParcelSla.style.display = 'none';
   viewTrivia.style.display = 'none';
@@ -391,9 +399,17 @@ function handleRouteChange() {
   if (hash === '#/orders' || hash === '') {
     currentTab = '#/orders';
     viewOrders.style.display = 'block';
+  } else if (hash === '#/orders-ca') {
+    viewOrdersCa.style.display = 'block';
+  } else if (hash === '#/usps-tracker') {
+    viewUspsTracker.style.display = 'block';
+    if (!uspsTrackerLoaded) {
+      uspsTrackerLoaded = true;
+      if (typeof initUSPSTracker === 'function') initUSPSTracker();
+      if (typeof loadUSPSTracker === 'function') loadUSPSTracker();
+    }
   } else if (hash === '#/inventory') {
     viewInventory.style.display = 'block';
-    // Lazy load inventory on first visit
     if (!inventoryLoaded && typeof loadInventory === 'function') {
       inventoryLoaded = true;
       loadInventory();
@@ -463,13 +479,14 @@ function exportOrdersToCSV() {
   const filtered = getFilteredSortedOrders();
   if (filtered.length === 0) return;
 
-  const headers = ['Order #', 'Customer', 'Vendors', 'Created', 'UNIS Shipped', 'Current Stage', 'Time in Stage', 'Status', 'Possible Cause', 'Total'];
+  const headers = ['Order #', 'Customer', 'Vendors', 'Created', 'UNIS Shipped', 'Tracking #', 'Current Stage', 'Time in Stage', 'Status', 'Possible Cause', 'Total'];
   const rows = filtered.map(order => [
     csvEscape(order.orderName),
     csvEscape(order.customerName),
     csvEscape(order.vendors ? order.vendors.join(', ') : ''),
     csvEscape(order.createdAt ? new Date(order.createdAt).toLocaleString() : ''),
     csvEscape(order.unisShippedDate ? new Date(order.unisShippedDate).toLocaleString() : ''),
+    csvEscape(order.trackingNumber || ''),
     csvEscape(getStageName(order.currentStage)),
     csvEscape(formatTime(order.timeInStageMinutes)),
     csvEscape(order.status),

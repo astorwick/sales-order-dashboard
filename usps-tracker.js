@@ -1,0 +1,144 @@
+// USPS Tracker tab
+
+let uspsTrackerData = null;
+let uspsTrackerDays = 14;
+let uspsStatusFilter = 'all';
+let uspsSearchQuery = '';
+
+const PRE_SHIPMENT_STATUSES = new Set([
+  'CONFIRMED', 'LABEL_PURCHASED', 'LABEL_PRINTED', 'LABEL_VOIDED', 'MARKED_AS_FULFILLED', 'SUBMITTED'
+]);
+
+function formatShipmentStatus(status) {
+  const labels = {
+    CONFIRMED: 'Pre-Shipment',
+    LABEL_PURCHASED: 'Label Created',
+    LABEL_PRINTED: 'Label Created',
+    LABEL_VOIDED: 'Label Voided',
+    MARKED_AS_FULFILLED: 'Label Created',
+    SUBMITTED: 'Submitted',
+    IN_TRANSIT: 'In Transit',
+    OUT_FOR_DELIVERY: 'Out for Delivery',
+    ATTEMPTED_DELIVERY: 'Attempted Delivery',
+    DELIVERED: 'Delivered',
+    FAILURE: 'Failure',
+    NOT_DELIVERED: 'Not Delivered',
+    PICKED_UP: 'Picked Up',
+    READY_FOR_PICKUP: 'Ready for Pickup',
+    FULFILLED: 'Fulfilled'
+  };
+  return labels[status] || status;
+}
+
+function shipmentStatusClass(status) {
+  if (PRE_SHIPMENT_STATUSES.has(status)) return 'missing_tracking';
+  if (['IN_TRANSIT', 'OUT_FOR_DELIVERY', 'PICKED_UP', 'SUBMITTED'].includes(status)) return 'warning';
+  if (status === 'DELIVERED') return 'complete';
+  if (['FAILURE', 'NOT_DELIVERED', 'ATTEMPTED_DELIVERY'].includes(status)) return 'stuck';
+  return 'ok';
+}
+
+function getFilteredUSPSShipments() {
+  if (!uspsTrackerData) return [];
+  return uspsTrackerData.shipments.filter(s => {
+    if (uspsStatusFilter === 'pre-shipment' && !s.isPreShipment) return false;
+    if (uspsStatusFilter !== 'all' && uspsStatusFilter !== 'pre-shipment' && s.shipmentStatus !== uspsStatusFilter) return false;
+    if (uspsSearchQuery) {
+      return s.orderName.toLowerCase().includes(uspsSearchQuery.toLowerCase());
+    }
+    return true;
+  });
+}
+
+function loadUSPSTracker() {
+  const tbody = document.getElementById('usps-tracker-list');
+  tbody.innerHTML = '<tr><td colspan="5" class="loading"><div class="loading-spinner"></div><p>Loading USPS shipments...</p></td></tr>';
+  document.getElementById('usps-tracker-summary-total').textContent = '-';
+  document.getElementById('usps-tracker-summary-pre').textContent = '-';
+
+  fetch(`${API_BASE}/usps-tracker?days=${uspsTrackerDays}`)
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) throw new Error(data.error || 'Unknown error');
+      uspsTrackerData = data;
+      renderUSPSTracker();
+      tabLastUpdated['#/usps-tracker'] = new Date();
+      showTabLastUpdated();
+    })
+    .catch(err => {
+      tbody.innerHTML = `<tr><td colspan="5" class="loading"><p>Error loading data: ${escapeHtml(err.message)}</p></td></tr>`;
+    });
+}
+
+function renderUSPSTracker() {
+  if (!uspsTrackerData) return;
+  const by = uspsTrackerData.summary.byStatus;
+  document.getElementById('usps-tracker-summary-total').textContent = uspsTrackerData.summary.total;
+  document.getElementById('usps-tracker-summary-pre').textContent = uspsTrackerData.summary.preShipment;
+  document.getElementById('usps-tracker-summary-in-transit').textContent = by['IN_TRANSIT'] || 0;
+  document.getElementById('usps-tracker-summary-out-for-delivery').textContent = by['OUT_FOR_DELIVERY'] || 0;
+  document.getElementById('usps-tracker-summary-attempted').textContent = by['ATTEMPTED_DELIVERY'] || 0;
+  document.getElementById('usps-tracker-summary-delivered').textContent = by['DELIVERED'] || 0;
+  document.getElementById('usps-tracker-summary-failure').textContent = (by['FAILURE'] || 0) + (by['NOT_DELIVERED'] || 0);
+
+  const filtered = getFilteredUSPSShipments();
+  const tbody = document.getElementById('usps-tracker-list');
+
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="loading"><p>No shipments match the current filters.</p></td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(s => {
+    const statusClass = shipmentStatusClass(s.shipmentStatus);
+    const trackingDisplay = s.trackingUrl
+      ? `<a href="${escapeHtml(s.trackingUrl)}" target="_blank" rel="noopener">${escapeHtml(s.trackingNumber || '—')}</a>`
+      : escapeHtml(s.trackingNumber || '—');
+    return `
+      <tr>
+        <td><span class="order-number">${escapeHtml(s.orderName)}</span></td>
+        <td>${s.fulfilledAt ? formatDate(s.fulfilledAt) : '—'}</td>
+        <td>${s.fulfilledAt ? formatTime(Math.floor((Date.now() - new Date(s.fulfilledAt)) / 60000)) : '—'}</td>
+        <td>${trackingDisplay}</td>
+        <td><span class="status-badge ${statusClass}">${escapeHtml(formatShipmentStatus(s.shipmentStatus))}</span></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function exportUSPSTrackerCSV() {
+  const filtered = getFilteredUSPSShipments();
+  if (!filtered.length) return;
+
+  const headers = ['Order #', 'Fulfilled', 'Time Since Fulfilled', 'Tracking #', 'Shipment Status'];
+  const rows = filtered.map(s => [
+    csvEscape(s.orderName),
+    csvEscape(s.fulfilledAt ? new Date(s.fulfilledAt).toLocaleString() : ''),
+    csvEscape(s.fulfilledAt ? formatTime(Math.floor((Date.now() - new Date(s.fulfilledAt)) / 60000)) : ''),
+    csvEscape(s.trackingNumber || ''),
+    csvEscape(formatShipmentStatus(s.shipmentStatus))
+  ].join(','));
+
+  const csv = [headers.join(','), ...rows].join('\n');
+  const date = new Date().toISOString().slice(0, 10);
+  downloadCSV(`usps-tracker-${date}.csv`, csv);
+}
+
+function initUSPSTracker() {
+  document.getElementById('usps-tracker-days').addEventListener('change', e => {
+    uspsTrackerDays = parseInt(e.target.value);
+    loadUSPSTracker();
+  });
+
+  document.getElementById('usps-status-filter').addEventListener('change', e => {
+    uspsStatusFilter = e.target.value;
+    renderUSPSTracker();
+  });
+
+  document.getElementById('usps-search').addEventListener('input', e => {
+    uspsSearchQuery = e.target.value.trim();
+    renderUSPSTracker();
+  });
+
+  document.getElementById('export-usps-btn').addEventListener('click', exportUSPSTrackerCSV);
+}

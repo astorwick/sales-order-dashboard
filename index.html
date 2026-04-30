@@ -18,7 +18,9 @@
 
     <!-- Tab Navigation -->
     <nav class="tab-nav">
-      <a href="#/orders" class="tab-link active" data-tab="orders">Unshipped Orders</a>
+      <a href="#/orders" class="tab-link active" data-tab="orders">Unshipped Orders - US</a>
+      <a href="#/orders-ca" class="tab-link" data-tab="orders-ca">Unshipped Orders - CA</a>
+      <a href="#/usps-tracker" class="tab-link" data-tab="usps-tracker">USPS Tracker</a>
       <a href="#/canceled" class="tab-link" data-tab="canceled">Canceled Orders</a>
       <a href="#/inventory" class="tab-link" data-tab="inventory">Shopify Run Rate (WIP)</a>
       <a href="#/parcel-sla" class="tab-link" data-tab="parcel-sla">Parcel SLA</a>
@@ -129,6 +131,7 @@
               <th>Vendor(s)</th>
               <th>Created</th>
               <th>UNIS Shipped</th>
+              <th>Tracking #</th>
               <th>Current Stage</th>
               <th>Time in Stage</th>
               <th>Status</th>
@@ -138,9 +141,99 @@
           </thead>
           <tbody id="orders-list">
             <tr>
-              <td colspan="10" class="loading">
+              <td colspan="11" class="loading">
                 <div class="loading-spinner"></div>
                 <p>Loading orders...</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Orders CA View -->
+    <div id="view-orders-ca" class="view-panel" style="display: none;">
+    </div>
+
+    <!-- USPS Tracker View -->
+    <div id="view-usps-tracker" class="view-panel" style="display: none;">
+      <div class="summary-cards">
+        <div class="summary-card">
+          <div class="label">Total</div>
+          <div class="value" id="usps-tracker-summary-total">-</div>
+        </div>
+        <div class="summary-card missing-tracking">
+          <div class="label">Pre-Shipment</div>
+          <div class="value" id="usps-tracker-summary-pre">-</div>
+        </div>
+        <div class="summary-card">
+          <div class="label">In Transit</div>
+          <div class="value" id="usps-tracker-summary-in-transit">-</div>
+        </div>
+        <div class="summary-card">
+          <div class="label">Out for Delivery</div>
+          <div class="value" id="usps-tracker-summary-out-for-delivery">-</div>
+        </div>
+        <div class="summary-card stuck">
+          <div class="label">Attempted Delivery</div>
+          <div class="value" id="usps-tracker-summary-attempted">-</div>
+        </div>
+        <div class="summary-card ok">
+          <div class="label">Delivered</div>
+          <div class="value" id="usps-tracker-summary-delivered">-</div>
+        </div>
+        <div class="summary-card stuck">
+          <div class="label">Failure / Not Delivered</div>
+          <div class="value" id="usps-tracker-summary-failure">-</div>
+        </div>
+      </div>
+
+      <div class="filters">
+        <div class="filter-group">
+          <label for="usps-tracker-days">Date Range:</label>
+          <select id="usps-tracker-days">
+            <option value="7">Last 7 days</option>
+            <option value="14" selected>Last 14 days</option>
+            <option value="30">Last 30 days</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="usps-status-filter">Status:</label>
+          <select id="usps-status-filter">
+            <option value="all">All Statuses</option>
+            <option value="pre-shipment">Pre-Shipment</option>
+            <option value="IN_TRANSIT">In Transit</option>
+            <option value="OUT_FOR_DELIVERY">Out for Delivery</option>
+            <option value="ATTEMPTED_DELIVERY">Attempted Delivery</option>
+            <option value="DELIVERED">Delivered</option>
+            <option value="FAILURE">Failure</option>
+            <option value="NOT_DELIVERED">Not Delivered</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="usps-search">Order #:</label>
+          <input type="text" id="usps-search" placeholder="Search order...">
+        </div>
+        <div class="filter-group export-group">
+          <button id="export-usps-btn" class="export-btn">Export CSV</button>
+        </div>
+      </div>
+
+      <div class="orders-table-container">
+        <table class="orders-table">
+          <thead>
+            <tr>
+              <th>Order #</th>
+              <th>Fulfilled</th>
+              <th>Time Since Fulfilled</th>
+              <th>Tracking #</th>
+              <th>Shipment Status</th>
+            </tr>
+          </thead>
+          <tbody id="usps-tracker-list">
+            <tr>
+              <td colspan="5" class="loading">
+                <p>Navigate to this tab to load USPS tracking data.</p>
               </td>
             </tr>
           </tbody>
@@ -404,6 +497,7 @@
     </div>
 
   <script src="app.js"></script>
+  <script src="usps-tracker.js"></script>
   <script src="inventory.js"></script>
   <script src="parcel-sla.js"></script>
   <script src="trivia.js"></script>

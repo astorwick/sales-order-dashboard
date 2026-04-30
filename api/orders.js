@@ -27,7 +27,7 @@ function getThresholds() {
     [STAGES.SAP]: parseInt(process.env.THRESHOLD_SAP_TO_3PL_REQUEST) || 120,
     [STAGES.THREEPL_REQUEST]: parseInt(process.env.THRESHOLD_3PL_REQUEST_TO_RECEIVED) || 240,
     [STAGES.WAREHOUSE_RECEIVED]: parseInt(process.env.THRESHOLD_RECEIVED_TO_SHIPPED) || 1440,
-    [STAGES.SHIPPED]: parseInt(process.env.THRESHOLD_SHIPPED_TO_TRACKING) || null
+    [STAGES.SHIPPED]: parseInt(process.env.THRESHOLD_SHIPPED_TO_TRACKING) || 60
   };
 }
 
@@ -71,25 +71,23 @@ function determinePossibleCause(shopifyOrder) {
   return causes;
 }
 
-function determineStatus(timeInStage, threshold, isShippable, stage, hasUnfulfilledLines, unisTrackingNumber, shopifyTrackingNumbers) {
-  // If order is not shippable (no "Ember" vendor), mark as unshippable
+function determineStatus(timeInStage, threshold, isShippable, stage, hasUnfulfilledLines) {
   if (isShippable === false) return 'unshippable';
 
-  // If order has unfulfilled lines and Unis has tracking that's not in Shopify, mark as missing_tracking
-  // (the Unis tracking needs to be synced back to Shopify)
-  const unisTrackingInShopify = unisTrackingNumber && shopifyTrackingNumbers.includes(unisTrackingNumber);
-  if (hasUnfulfilledLines && unisTrackingNumber && !unisTrackingInShopify) return 'missing_tracking';
+  // Complete: at TRACKING stage with no remaining unfulfilled lines in Shopify
+  if (stage === STAGES.TRACKING && !hasUnfulfilledLines) return 'complete';
 
-  // If order is fully fulfilled in Shopify (no unfulfilled lines), it's complete
-  if (!hasUnfulfilledLines) return 'complete';
+  // Tracking found but Shopify still has unfulfilled lines — waiting for fulfillment to close
+  if (stage === STAGES.TRACKING) return 'ok';
 
-  // If Unis tracking is synced to Shopify, it's complete
-  if (stage === STAGES.TRACKING && unisTrackingInShopify) return 'complete';
+  if (!threshold) return 'ok';
 
-  if (!threshold) return 'complete';
+  // Shipped stage: ok for the first 60 min, then missing_tracking until tracking syncs to Shopify
+  if (stage === STAGES.SHIPPED) {
+    return timeInStage >= threshold ? 'missing_tracking' : 'ok';
+  }
 
   const ratio = timeInStage / threshold;
-
   if (ratio >= 1) return 'stuck';
   if (ratio >= 0.75) return 'warning';
   return 'ok';
@@ -98,34 +96,35 @@ function determineStatus(timeInStage, threshold, isShippable, stage, hasUnfulfil
 function determineCurrentStage(shopifyOrder, sapOrder, threePlStatus) {
   // Work backwards from tracking to find current stage
 
-  // Check for tracking from UNIS or Shopify
-  const unisHasTracking = threePlStatus?.trackingNumber || (threePlStatus?.trackingNumbers?.length > 0);
-  const shopifyHasTracking = shopifyOrder.trackingNumber || (shopifyOrder.trackingNumbers?.length > 0);
-  const hasTracking = unisHasTracking || shopifyHasTracking;
+  const shopifyTrackingNumbers = shopifyOrder.trackingNumbers || (shopifyOrder.trackingNumber ? [shopifyOrder.trackingNumber] : []);
+  const unisTrackingNumber = threePlStatus?.trackingNumber || null;
+  const unisTrackingInShopify = !!(unisTrackingNumber && shopifyTrackingNumbers.includes(unisTrackingNumber));
+  const unisHasTracking = !!(unisTrackingNumber || threePlStatus?.trackingNumbers?.length > 0);
 
-  // If has tracking from either source, order is at TRACKING stage
-  if (hasTracking) {
+  // TRACKING stage: UNIS has shipped AND its specific tracking number is present in Shopify
+  if (threePlStatus?.shippedDate && unisTrackingInShopify) {
     return {
       stage: STAGES.TRACKING,
-      stageEnteredAt: threePlStatus?.shippedDate || shopifyOrder.fulfilledAt || shopifyOrder.updatedAt,
-      trackingNumber: threePlStatus?.trackingNumber || shopifyOrder.trackingNumber,
-      trackingNumbers: threePlStatus?.trackingNumbers || shopifyOrder.trackingNumbers || [],
+      stageEnteredAt: shopifyOrder.fulfilledAt || shopifyOrder.updatedAt,
+      trackingNumber: unisTrackingNumber,
+      trackingNumbers: threePlStatus?.trackingNumbers || [unisTrackingNumber],
       carrier: threePlStatus?.carrier || shopifyOrder.carrier,
       hasTracking: true,
-      shopifyHasTracking: shopifyHasTracking,
-      source: unisHasTracking ? 'unis' : 'shopify'
+      shopifyHasTracking: true,
+      source: 'shopify'
     };
   }
 
-  // UNIS 3PL: Check if shipped (has shippedDate) but no tracking
-  if (threePlStatus?.isShipped || threePlStatus?.shippedDate) {
+  // SHIPPED stage: UNIS has a ship date; stays here until its tracking number appears in Shopify
+  if (threePlStatus?.shippedDate) {
     return {
       stage: STAGES.SHIPPED,
       stageEnteredAt: threePlStatus.shippedDate,
-      trackingNumber: null,
-      trackingNumbers: [],
-      carrier: threePlStatus.carrier,
-      hasTracking: false,
+      trackingNumber: threePlStatus?.trackingNumber || null,
+      trackingNumbers: threePlStatus?.trackingNumbers || [],
+      carrier: threePlStatus?.carrier,
+      hasTracking: unisHasTracking,
+      shopifyHasTracking: false,
       source: 'unis'
     };
   }
@@ -205,12 +204,8 @@ async function aggregateOrders(daysBack = 7) {
     const timeInStage = calculateTimeInStage(stageInfo.stageEnteredAt);
     const threshold = thresholds[stageInfo.stage];
     const shippable = isShippableOrder(shopifyOrder.lineItems);
-    // Order has unfulfilled lines if it's not fully fulfilled in Shopify
     const hasUnfulfilledLines = !shopifyOrder.isFulfilled;
-    // Get Unis tracking and Shopify tracking numbers for comparison
-    const unisTrackingNumber = threePlStatus?.trackingNumber || null;
-    const shopifyTrackingNumbers = shopifyOrder.trackingNumbers || [];
-    const status = determineStatus(timeInStage, threshold, shippable, stageInfo.stage, hasUnfulfilledLines, unisTrackingNumber, shopifyTrackingNumbers);
+    const status = determineStatus(timeInStage, threshold, shippable, stageInfo.stage, hasUnfulfilledLines);
     const possibleCauses = determinePossibleCause(shopifyOrder);
 
     const stageIndex = STAGE_ORDER.indexOf(stageInfo.stage);
