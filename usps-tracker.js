@@ -4,6 +4,7 @@ let uspsTrackerData = null;
 let uspsTrackerDays = 14;
 let uspsStatusFilter = 'all';
 let uspsSearchQuery = '';
+let uspsSortOption = 'time-desc';
 
 const PRE_SHIPMENT_STATUSES = new Set([
   'CONFIRMED', 'LABEL_PURCHASED', 'LABEL_PRINTED', 'LABEL_VOIDED', 'MARKED_AS_FULFILLED', 'SUBMITTED'
@@ -40,17 +41,30 @@ function shipmentStatusClass(status) {
 
 function getFilteredUSPSShipments() {
   if (!uspsTrackerData) return [];
-  return uspsTrackerData.shipments.filter(s => {
+  const filtered = uspsTrackerData.shipments.filter(s => {
     if (uspsStatusFilter === 'pre-shipment' && !s.isPreShipment) return false;
     if (uspsStatusFilter !== 'all' && uspsStatusFilter !== 'pre-shipment' && s.shipmentStatus !== uspsStatusFilter) return false;
-    if (uspsSearchQuery) {
-      return s.orderName.toLowerCase().includes(uspsSearchQuery.toLowerCase());
-    }
+    if (uspsSearchQuery && !s.orderName.toLowerCase().includes(uspsSearchQuery.toLowerCase())) return false;
     return true;
   });
+
+  filtered.sort((a, b) => {
+    switch (uspsSortOption) {
+      case 'time-desc': return new Date(a.fulfilledAt) - new Date(b.fulfilledAt);
+      case 'time-asc':  return new Date(b.fulfilledAt) - new Date(a.fulfilledAt);
+      case 'fulfilled-asc': return new Date(a.fulfilledAt) - new Date(b.fulfilledAt);
+      case 'fulfilled-desc': return new Date(b.fulfilledAt) - new Date(a.fulfilledAt);
+      case 'order-asc':  return a.orderName.localeCompare(b.orderName);
+      case 'order-desc': return b.orderName.localeCompare(a.orderName);
+      default: return 0;
+    }
+  });
+
+  return filtered;
 }
 
 function loadUSPSTracker() {
+  const startTime = Date.now();
   const tbody = document.getElementById('usps-tracker-list');
   tbody.innerHTML = '<tr><td colspan="5" class="loading"><div class="loading-spinner"></div><p>Loading USPS shipments...</p></td></tr>';
   document.getElementById('usps-tracker-summary-total').textContent = '-';
@@ -62,7 +76,8 @@ function loadUSPSTracker() {
       if (!data.success) throw new Error(data.error || 'Unknown error');
       uspsTrackerData = data;
       renderUSPSTracker();
-      tabLastUpdated['#/usps-tracker'] = new Date();
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      tabLastUpdated['#/usps-tracker'] = `Last updated: ${new Date().toLocaleTimeString()} (${elapsed}s)`;
       showTabLastUpdated();
     })
     .catch(err => {
@@ -137,6 +152,11 @@ function initUSPSTracker() {
 
   document.getElementById('usps-search').addEventListener('input', e => {
     uspsSearchQuery = e.target.value.trim();
+    renderUSPSTracker();
+  });
+
+  document.getElementById('usps-sort').addEventListener('change', e => {
+    uspsSortOption = e.target.value;
     renderUSPSTracker();
   });
 

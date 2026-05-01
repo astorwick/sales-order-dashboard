@@ -214,6 +214,17 @@
           <label for="usps-search">Order #:</label>
           <input type="text" id="usps-search" placeholder="Search order...">
         </div>
+        <div class="filter-group">
+          <label for="usps-sort">Sort By:</label>
+          <select id="usps-sort">
+            <option value="time-desc">Time Since Fulfilled (Longest)</option>
+            <option value="time-asc">Time Since Fulfilled (Shortest)</option>
+            <option value="fulfilled-asc">Fulfilled (Oldest)</option>
+            <option value="fulfilled-desc">Fulfilled (Newest)</option>
+            <option value="order-asc">Order # (A→Z)</option>
+            <option value="order-desc">Order # (Z→A)</option>
+          </select>
+        </div>
         <div class="filter-group export-group">
           <button id="export-usps-btn" class="export-btn">Export CSV</button>
         </div>
