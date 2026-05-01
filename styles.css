@@ -149,6 +149,22 @@ h1 {
 .summary-card.ok .value { color: #2a9d8f; }
 .summary-card.complete .value { color: #666; }
 
+.summary-card.slim {
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 8px;
+}
+
+.summary-card.slim .label {
+  margin-bottom: 0;
+}
+
+.summary-card.slim .value {
+  font-size: 20px;
+}
+
 /* Filters */
 .filters {
   background: white;

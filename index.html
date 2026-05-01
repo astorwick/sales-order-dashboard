@@ -20,7 +20,7 @@
     <nav class="tab-nav">
       <a href="#/orders" class="tab-link active" data-tab="orders">Unshipped Orders - US</a>
       <a href="#/orders-ca" class="tab-link" data-tab="orders-ca">Unshipped Orders - CA</a>
-      <a href="#/usps-tracker" class="tab-link" data-tab="usps-tracker">USPS Tracker</a>
+      <a href="#/usps-tracker" class="tab-link" data-tab="usps-tracker">Parcel Delivery Status</a>
       <a href="#/canceled" class="tab-link" data-tab="canceled">Canceled Orders</a>
       <a href="#/inventory" class="tab-link" data-tab="inventory">Shopify Run Rate (WIP)</a>
       <a href="#/parcel-sla" class="tab-link" data-tab="parcel-sla">Parcel SLA</a>
@@ -187,6 +187,24 @@
           <div class="value" id="usps-tracker-summary-failure">-</div>
         </div>
       </div>
+      <div class="summary-cards" style="margin-top: 8px; margin-bottom: 24px;">
+        <div class="summary-card parcel-ups slim">
+          <div class="label">Pre-Shipment: UPS</div>
+          <div class="value" id="usps-carrier-pre-ups">-</div>
+        </div>
+        <div class="summary-card parcel-usps slim">
+          <div class="label">Pre-Shipment: USPS</div>
+          <div class="value" id="usps-carrier-pre-usps">-</div>
+        </div>
+        <div class="summary-card parcel-fedex slim">
+          <div class="label">Pre-Shipment: FedEx</div>
+          <div class="value" id="usps-carrier-pre-fedex">-</div>
+        </div>
+        <div class="summary-card parcel-amazon slim">
+          <div class="label">Pre-Shipment: AmazonShip</div>
+          <div class="value" id="usps-carrier-pre-amazon">-</div>
+        </div>
+      </div>
 
       <div class="filters">
         <div class="filter-group">
@@ -195,6 +213,12 @@
             <option value="7">Last 7 days</option>
             <option value="14" selected>Last 14 days</option>
             <option value="30">Last 30 days</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="usps-carrier-filter">Carrier:</label>
+          <select id="usps-carrier-filter">
+            <option value="all">All Carriers</option>
           </select>
         </div>
         <div class="filter-group">
@@ -237,13 +261,14 @@
               <th>Order #</th>
               <th>Fulfilled</th>
               <th>Time Since Fulfilled</th>
+              <th>Carrier</th>
               <th>Tracking #</th>
               <th>Shipment Status</th>
             </tr>
           </thead>
           <tbody id="usps-tracker-list">
             <tr>
-              <td colspan="5" class="loading">
+              <td colspan="6" class="loading">
                 <p>Navigate to this tab to load USPS tracking data.</p>
               </td>
             </tr>

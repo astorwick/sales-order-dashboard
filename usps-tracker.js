@@ -2,6 +2,7 @@
 
 let uspsTrackerData = null;
 let uspsTrackerDays = 14;
+let uspsCarrierFilter = 'all';
 let uspsStatusFilter = 'all';
 let uspsSearchQuery = '';
 let uspsSortOption = 'time-desc';
@@ -26,7 +27,8 @@ function formatShipmentStatus(status) {
     NOT_DELIVERED: 'Not Delivered',
     PICKED_UP: 'Picked Up',
     READY_FOR_PICKUP: 'Ready for Pickup',
-    FULFILLED: 'Fulfilled'
+    FULFILLED: 'Fulfilled',
+    NOT_AVAILABLE: 'Not Available'
   };
   return labels[status] || status;
 }
@@ -42,6 +44,7 @@ function shipmentStatusClass(status) {
 function getFilteredUSPSShipments() {
   if (!uspsTrackerData) return [];
   const filtered = uspsTrackerData.shipments.filter(s => {
+    if (uspsCarrierFilter !== 'all' && s.carrier !== uspsCarrierFilter) return false;
     if (uspsStatusFilter === 'pre-shipment' && !s.isPreShipment) return false;
     if (uspsStatusFilter !== 'all' && uspsStatusFilter !== 'pre-shipment' && s.shipmentStatus !== uspsStatusFilter) return false;
     if (uspsSearchQuery && !s.orderName.toLowerCase().includes(uspsSearchQuery.toLowerCase())) return false;
@@ -66,7 +69,7 @@ function getFilteredUSPSShipments() {
 function loadUSPSTracker() {
   const startTime = Date.now();
   const tbody = document.getElementById('usps-tracker-list');
-  tbody.innerHTML = '<tr><td colspan="5" class="loading"><div class="loading-spinner"></div><p>Loading USPS shipments...</p></td></tr>';
+  tbody.innerHTML = '<tr><td colspan="5" class="loading"><div class="loading-spinner"></div><p>Loading shipments...</p></td></tr>';
   document.getElementById('usps-tracker-summary-total').textContent = '-';
   document.getElementById('usps-tracker-summary-pre').textContent = '-';
 
@@ -87,6 +90,19 @@ function loadUSPSTracker() {
 
 function renderUSPSTracker() {
   if (!uspsTrackerData) return;
+  // Rebuild carrier filter options from live data
+  const carrierSelect = document.getElementById('usps-carrier-filter');
+  const currentCarrier = carrierSelect.value;
+  const carriers = [...new Set(uspsTrackerData.shipments.map(s => s.carrier).filter(Boolean))].sort();
+  carrierSelect.innerHTML = '<option value="all">All Carriers</option>';
+  carriers.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c;
+    opt.textContent = c;
+    carrierSelect.appendChild(opt);
+  });
+  carrierSelect.value = carriers.includes(currentCarrier) ? currentCarrier : 'all';
+
   const by = uspsTrackerData.summary.byStatus;
   document.getElementById('usps-tracker-summary-total').textContent = uspsTrackerData.summary.total;
   document.getElementById('usps-tracker-summary-pre').textContent = uspsTrackerData.summary.preShipment;
@@ -95,6 +111,16 @@ function renderUSPSTracker() {
   document.getElementById('usps-tracker-summary-attempted').textContent = by['ATTEMPTED_DELIVERY'] || 0;
   document.getElementById('usps-tracker-summary-delivered').textContent = by['DELIVERED'] || 0;
   document.getElementById('usps-tracker-summary-failure').textContent = (by['FAILURE'] || 0) + (by['NOT_DELIVERED'] || 0);
+
+  // Carrier pre-shipment cards
+  const CARRIER_CARD_IDS = { 'UPS': 'usps-carrier-pre-ups', 'USPS': 'usps-carrier-pre-usps', 'FedEx': 'usps-carrier-pre-fedex', 'AmazonShip': 'usps-carrier-pre-amazon' };
+  Object.values(CARRIER_CARD_IDS).forEach(id => { document.getElementById(id).textContent = '0'; });
+  uspsTrackerData.shipments.forEach(s => {
+    if (s.isPreShipment && s.carrier && CARRIER_CARD_IDS[s.carrier]) {
+      const el = document.getElementById(CARRIER_CARD_IDS[s.carrier]);
+      el.textContent = parseInt(el.textContent) + 1;
+    }
+  });
 
   const filtered = getFilteredUSPSShipments();
   const tbody = document.getElementById('usps-tracker-list');
@@ -114,6 +140,7 @@ function renderUSPSTracker() {
         <td><span class="order-number">${escapeHtml(s.orderName)}</span></td>
         <td>${s.fulfilledAt ? formatDate(s.fulfilledAt) : '—'}</td>
         <td>${s.fulfilledAt ? formatTime(Math.floor((Date.now() - new Date(s.fulfilledAt)) / 60000)) : '—'}</td>
+        <td>${escapeHtml(s.carrier || '—')}</td>
         <td>${trackingDisplay}</td>
         <td><span class="status-badge ${statusClass}">${escapeHtml(formatShipmentStatus(s.shipmentStatus))}</span></td>
       </tr>
@@ -125,11 +152,12 @@ function exportUSPSTrackerCSV() {
   const filtered = getFilteredUSPSShipments();
   if (!filtered.length) return;
 
-  const headers = ['Order #', 'Fulfilled', 'Time Since Fulfilled', 'Tracking #', 'Shipment Status'];
+  const headers = ['Order #', 'Fulfilled', 'Time Since Fulfilled', 'Carrier', 'Tracking #', 'Shipment Status'];
   const rows = filtered.map(s => [
     csvEscape(s.orderName),
     csvEscape(s.fulfilledAt ? new Date(s.fulfilledAt).toLocaleString() : ''),
     csvEscape(s.fulfilledAt ? formatTime(Math.floor((Date.now() - new Date(s.fulfilledAt)) / 60000)) : ''),
+    csvEscape(s.carrier || ''),
     csvEscape(s.trackingNumber || ''),
     csvEscape(formatShipmentStatus(s.shipmentStatus))
   ].join(','));
@@ -143,6 +171,11 @@ function initUSPSTracker() {
   document.getElementById('usps-tracker-days').addEventListener('change', e => {
     uspsTrackerDays = parseInt(e.target.value);
     loadUSPSTracker();
+  });
+
+  document.getElementById('usps-carrier-filter').addEventListener('change', e => {
+    uspsCarrierFilter = e.target.value;
+    renderUSPSTracker();
   });
 
   document.getElementById('usps-status-filter').addEventListener('change', e => {
