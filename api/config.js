@@ -1,3 +1,11 @@
+function requireEnvInt(name) {
+  const val = process.env[name];
+  if (val === undefined || val === '') throw new Error(`Missing required environment variable: ${name}`);
+  const parsed = parseInt(val);
+  if (isNaN(parsed)) throw new Error(`Environment variable ${name} must be an integer, got: ${val}`);
+  return parsed;
+}
+
 const ALLOWED_ORIGINS = [
   'https://sales-order-dashboard-pi.vercel.app',
   'https://sales-order-dashboard-bquqnyeu0-anthonystorwick-1458s-projects.vercel.app'
@@ -23,10 +31,10 @@ module.exports = async (req, res) => {
   // Thresholds in minutes
   const config = {
     thresholds: {
-      shopifyToSap: parseInt(process.env.THRESHOLD_SHOPIFY_TO_SAP) || 60,           // 1 hour
-      sapTo3plRequest: parseInt(process.env.THRESHOLD_SAP_TO_3PL_REQUEST) || 120,    // 2 hours
-      threePlRequestToReceived: parseInt(process.env.THRESHOLD_3PL_REQUEST_TO_RECEIVED) || 240, // 4 hours
-      receivedToShipped: parseInt(process.env.THRESHOLD_RECEIVED_TO_SHIPPED) || 1440  // 24 hours
+      shopifyToSap: requireEnvInt('THRESHOLD_SHOPIFY_TO_SAP'),
+      sapTo3plRequest: requireEnvInt('THRESHOLD_SAP_TO_3PL_REQUEST'),
+      threePlRequestToReceived: requireEnvInt('THRESHOLD_3PL_REQUEST_TO_RECEIVED'),
+      receivedToShipped: requireEnvInt('THRESHOLD_RECEIVED_TO_SHIPPED')
     },
     stages: [
       { id: 'shopify', name: 'Shopify', description: 'Order created in Shopify' },

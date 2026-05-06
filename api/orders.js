@@ -21,13 +21,21 @@ const STAGE_ORDER = [
   STAGES.TRACKING
 ];
 
+function requireEnvInt(name) {
+  const val = process.env[name];
+  if (val === undefined || val === '') throw new Error(`Missing required environment variable: ${name}`);
+  const parsed = parseInt(val);
+  if (isNaN(parsed)) throw new Error(`Environment variable ${name} must be an integer, got: ${val}`);
+  return parsed;
+}
+
 function getThresholds() {
   return {
-    [STAGES.SHOPIFY]: parseInt(process.env.THRESHOLD_SHOPIFY_TO_SAP) || 60,
-    [STAGES.SAP]: parseInt(process.env.THRESHOLD_SAP_TO_3PL_REQUEST) || 120,
-    [STAGES.THREEPL_REQUEST]: parseInt(process.env.THRESHOLD_3PL_REQUEST_TO_RECEIVED) || 240,
-    [STAGES.WAREHOUSE_RECEIVED]: parseInt(process.env.THRESHOLD_RECEIVED_TO_SHIPPED) || 1440,
-    [STAGES.SHIPPED]: parseInt(process.env.THRESHOLD_SHIPPED_TO_TRACKING) || 60
+    [STAGES.SHOPIFY]: requireEnvInt('THRESHOLD_SHOPIFY_TO_SAP'),
+    [STAGES.SAP]: requireEnvInt('THRESHOLD_SAP_TO_3PL_REQUEST'),
+    [STAGES.THREEPL_REQUEST]: requireEnvInt('THRESHOLD_3PL_REQUEST_TO_RECEIVED'),
+    [STAGES.WAREHOUSE_RECEIVED]: requireEnvInt('THRESHOLD_RECEIVED_TO_SHIPPED'),
+    [STAGES.SHIPPED]: requireEnvInt('THRESHOLD_SHIPPED_TO_TRACKING')
   };
 }
 
