@@ -6,8 +6,8 @@ const API_BASE = '/api';
 let orders = [];
 let config = null;
 let filters = {
-  stage: 'all',
-  status: 'all',
+  stage: new Set(),  // empty = all stages
+  status: new Set(), // empty = all statuses
   search: '',
   days: 7,
   sort: 'created-desc'
@@ -21,8 +21,6 @@ let tabLastUpdated = {};
 // DOM Elements
 const elements = {
   ordersList: document.getElementById('orders-list'),
-  stageFilter: document.getElementById('stage-filter'),
-  statusFilter: document.getElementById('status-filter'),
   searchInput: document.getElementById('search-input'),
   daysFilter: document.getElementById('days-filter'),
   sortFilter: document.getElementById('sort-filter'),
@@ -229,12 +227,8 @@ function renderOrderRow(order) {
 function renderOrders(ordersData) {
   // Apply filters
   let filtered = ordersData.filter(order => {
-    if (filters.stage !== 'all' && order.currentStage !== filters.stage) {
-      return false;
-    }
-    if (filters.status !== 'all' && order.status !== filters.status) {
-      return false;
-    }
+    if (filters.stage.size > 0 && !filters.stage.has(order.currentStage)) return false;
+    if (filters.status.size > 0 && !filters.status.has(order.status)) return false;
     if (filters.search) {
       const search = filters.search.toLowerCase();
       return (
@@ -304,14 +298,53 @@ function renderError(message) {
 }
 
 // Event Handlers
-function handleStageFilterChange(e) {
-  filters.stage = e.target.value;
-  renderOrders(orders);
-}
+function setupMultiSelect(containerId, filterKey) {
+  const container = document.getElementById(containerId);
+  const btn = container.querySelector('.multi-select-btn');
+  const allLabel = btn.textContent;
+  const selectAllCb = container.querySelector('.select-all-cb');
+  const optionCbs = [...container.querySelectorAll('input[type="checkbox"]:not(.select-all-cb)')];
 
-function handleStatusFilterChange(e) {
-  filters.status = e.target.value;
-  renderOrders(orders);
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    document.querySelectorAll('.multi-select.open').forEach(ms => {
+      if (ms !== container) ms.classList.remove('open');
+    });
+    container.classList.toggle('open');
+  });
+
+  function updateFiltersAndLabel() {
+    const checked = optionCbs.filter(cb => cb.checked);
+    const allChecked = checked.length === optionCbs.length;
+    filters[filterKey] = (checked.length === 0 || allChecked) ? new Set() : new Set(checked.map(c => c.value));
+    if (checked.length === 0 || allChecked) {
+      btn.textContent = allLabel;
+    } else if (checked.length === 1) {
+      btn.textContent = checked[0].closest('.multi-select-option').textContent.trim();
+    } else {
+      btn.textContent = `${checked.length} selected`;
+    }
+    renderOrders(orders);
+  }
+
+  function updateSelectAll() {
+    const checkedCount = optionCbs.filter(cb => cb.checked).length;
+    selectAllCb.checked = checkedCount === optionCbs.length;
+    selectAllCb.indeterminate = checkedCount > 0 && checkedCount < optionCbs.length;
+  }
+
+  selectAllCb.addEventListener('change', () => {
+    optionCbs.forEach(cb => cb.checked = selectAllCb.checked);
+    selectAllCb.indeterminate = false;
+    updateFiltersAndLabel();
+  });
+
+  optionCbs.forEach(cb => {
+    cb.addEventListener('change', () => {
+      updateSelectAll();
+      updateFiltersAndLabel();
+    });
+  });
 }
 
 function handleSearchInput(e) {
@@ -439,8 +472,8 @@ function handleRouteChange() {
 // CSV Export for Unshipped Orders
 function getFilteredSortedOrders() {
   let filtered = orders.filter(order => {
-    if (filters.stage !== 'all' && order.currentStage !== filters.stage) return false;
-    if (filters.status !== 'all' && order.status !== filters.status) return false;
+    if (filters.stage.size > 0 && !filters.stage.has(order.currentStage)) return false;
+    if (filters.status.size > 0 && !filters.status.has(order.status)) return false;
     if (filters.search) {
       const search = filters.search.toLowerCase();
       return (
@@ -502,8 +535,13 @@ function exportOrdersToCSV() {
 // Initialize
 async function init() {
   // Bind event listeners
-  elements.stageFilter.addEventListener('change', handleStageFilterChange);
-  elements.statusFilter.addEventListener('change', handleStatusFilterChange);
+  setupMultiSelect('stage-filter', 'stage');
+  setupMultiSelect('status-filter', 'status');
+  document.addEventListener('click', e => {
+    document.querySelectorAll('.multi-select.open').forEach(ms => {
+      if (!ms.contains(e.target)) ms.classList.remove('open');
+    });
+  });
   elements.searchInput.addEventListener('input', handleSearchInput);
   elements.daysFilter.addEventListener('change', handleDaysFilterChange);
   elements.sortFilter.addEventListener('change', handleSortFilterChange);

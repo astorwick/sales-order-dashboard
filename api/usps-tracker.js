@@ -21,7 +21,7 @@ module.exports = async (req, res) => {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const daysBack = req.query.days === '7' ? 7 : req.query.days === '30' ? 30 : 14;
+    const daysBack = req.query.days === '14' ? 14 : req.query.days === '30' ? 30 : 7;
 
     const shopify = new ShopifyClient();
     const fulfillments = await shopify.getUSPSFulfillments(daysBack);

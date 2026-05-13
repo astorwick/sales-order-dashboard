@@ -69,28 +69,36 @@
       <!-- Filters -->
       <div class="filters">
         <div class="filter-group">
-          <label for="stage-filter">Stage:</label>
-          <select id="stage-filter">
-            <option value="all">All Stages</option>
-            <option value="shopify">Shopify</option>
-            <option value="sap">SAP ERP</option>
-            <option value="3pl_request">3PL Request Sent</option>
-            <option value="warehouse_received">Warehouse Received</option>
-            <option value="shipped">Shipped</option>
-            <option value="tracking">Tracking</option>
-          </select>
+          <label>Stage:</label>
+          <div class="multi-select" id="stage-filter">
+            <button class="multi-select-btn" type="button">All Stages</button>
+            <div class="multi-select-dropdown">
+              <label class="multi-select-option multi-select-all"><input type="checkbox" class="select-all-cb"> Select All</label>
+              <div class="multi-select-divider"></div>
+              <label class="multi-select-option"><input type="checkbox" value="shopify"> Shopify</label>
+              <label class="multi-select-option"><input type="checkbox" value="sap"> SAP ERP</label>
+              <label class="multi-select-option"><input type="checkbox" value="3pl_request"> 3PL Request Sent</label>
+              <label class="multi-select-option"><input type="checkbox" value="warehouse_received"> Warehouse Received</label>
+              <label class="multi-select-option"><input type="checkbox" value="shipped"> Shipped</label>
+              <label class="multi-select-option"><input type="checkbox" value="tracking"> Tracking</label>
+            </div>
+          </div>
         </div>
         <div class="filter-group">
-          <label for="status-filter">Status:</label>
-          <select id="status-filter">
-            <option value="all">All Statuses</option>
-            <option value="unshippable">Unshippable</option>
-            <option value="missing_tracking">Missing Tracking</option>
-            <option value="stuck">Stuck</option>
-            <option value="warning">Warning</option>
-            <option value="ok">On Track</option>
-            <option value="complete">Complete</option>
-          </select>
+          <label>Status:</label>
+          <div class="multi-select" id="status-filter">
+            <button class="multi-select-btn" type="button">All Statuses</button>
+            <div class="multi-select-dropdown">
+              <label class="multi-select-option multi-select-all"><input type="checkbox" class="select-all-cb"> Select All</label>
+              <div class="multi-select-divider"></div>
+              <label class="multi-select-option"><input type="checkbox" value="unshippable"> Unshippable</label>
+              <label class="multi-select-option"><input type="checkbox" value="missing_tracking"> Missing Tracking</label>
+              <label class="multi-select-option"><input type="checkbox" value="stuck"> Stuck</label>
+              <label class="multi-select-option"><input type="checkbox" value="warning"> Warning</label>
+              <label class="multi-select-option"><input type="checkbox" value="ok"> On Track</label>
+              <label class="multi-select-option"><input type="checkbox" value="complete"> Complete</label>
+            </div>
+          </div>
         </div>
         <div class="filter-group">
           <label for="search-input">Search:</label>
@@ -211,8 +219,8 @@
         <div class="filter-group">
           <label for="usps-tracker-days">Date Range:</label>
           <select id="usps-tracker-days">
-            <option value="7">Last 7 days</option>
-            <option value="14" selected>Last 14 days</option>
+            <option value="7" selected>Last 7 days</option>
+            <option value="14">Last 14 days</option>
             <option value="30">Last 30 days</option>
           </select>
         </div>

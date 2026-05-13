@@ -205,6 +205,87 @@ h1 {
   border-color: #4361ee;
 }
 
+.multi-select {
+  position: relative;
+  display: inline-block;
+}
+
+.multi-select-btn {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+  min-width: 160px;
+  text-align: left;
+  display: inline-flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.multi-select-btn::after {
+  content: '▾';
+  font-size: 11px;
+  color: #888;
+  flex-shrink: 0;
+}
+
+.multi-select-btn:focus {
+  outline: none;
+  border-color: #4361ee;
+}
+
+.multi-select-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  z-index: 100;
+  min-width: 190px;
+  padding: 4px 0;
+}
+
+.multi-select.open .multi-select-dropdown {
+  display: block;
+}
+
+.multi-select-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.multi-select-option:hover {
+  background: #f5f7ff;
+}
+
+.multi-select-option input[type="checkbox"] {
+  cursor: pointer;
+  accent-color: #4361ee;
+}
+
+.multi-select-all {
+  font-weight: 500;
+}
+
+.multi-select-divider {
+  height: 1px;
+  background: #eee;
+  margin: 4px 0;
+}
+
 /* Orders Table */
 .orders-table-container {
   background: white;

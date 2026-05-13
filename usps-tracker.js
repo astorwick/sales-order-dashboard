@@ -1,7 +1,7 @@
 // USPS Tracker tab
 
 let uspsTrackerData = null;
-let uspsTrackerDays = 14;
+let uspsTrackerDays = 7;
 let uspsCarrierFilter = 'all';
 let uspsStatusFilter = 'all';
 let uspsSearchQuery = '';

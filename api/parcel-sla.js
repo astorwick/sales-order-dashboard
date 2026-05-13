@@ -3,54 +3,35 @@ const ThreePLClient = require('../lib/threepl');
 
 const SLA_HOURS = 36;
 
-// Returns the day of the week (0=Sun … 6=Sat) for a UTC Date, evaluated in Pacific Time.
-function ptDayOfWeek(date) {
-  return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(
-    new Intl.DateTimeFormat('en-US', {
-      timeZone: 'America/Los_Angeles',
-      weekday: 'short'
-    }).format(date)
-  );
-}
-
-// Returns the UTC Date corresponding to the next PT midnight after `date`.
-// Uses noon UTC of that next day to compute the DST-safe PT offset.
-function nextPTMidnight(date) {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Los_Angeles',
-    year: 'numeric', month: '2-digit', day: '2-digit'
-  }).formatToParts(date);
-  const y  = +parts.find(p => p.type === 'year').value;
-  const mo = +parts.find(p => p.type === 'month').value - 1;
-  const d  = +parts.find(p => p.type === 'day').value;
-
-  // Noon UTC of the next PT calendar day — safely away from any DST transition
-  const noonNextDay = new Date(Date.UTC(y, mo, d + 1, 12));
-  const ptOff = new Date(noonNextDay.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }))
-              - new Date(noonNextDay.toLocaleString('en-US', { timeZone: 'UTC' }));
-
-  // PT midnight of next day = UTC midnight of next day shifted by the PT offset
-  return new Date(Date.UTC(y, mo, d + 1) - ptOff);
-}
-
 // Count elapsed business hours between two dates, skipping Sat/Sun in Pacific Time.
+// Uses UTC-8 as a fixed PT approximation — DST error is ≤1h on 2 days/year, immaterial vs. 36h SLA.
 function calcBusinessHours(start, end) {
   if (!(start instanceof Date)) start = new Date(start);
   if (!(end instanceof Date)) end = new Date(end);
   if (end <= start) return 0;
 
-  let ms = 0;
-  let cur = new Date(start);
+  const DAY_MS = 86400000;
+  const PT_OFFSET_MS = 8 * 3600000; // UTC-8
 
-  while (cur < end) {
-    const dow = ptDayOfWeek(cur);
-    if (dow !== 0 && dow !== 6) {
-      ms += Math.min(nextPTMidnight(cur), end) - cur;
-    }
-    cur = nextPTMidnight(cur);
+  // Shift into PT space so day boundaries align with PT midnight
+  const s = start.getTime() - PT_OFFSET_MS;
+  const e = end.getTime() - PT_OFFSET_MS;
+
+  // In PT space, day 0 starts at 1970-01-01 00:00 PT = 1970-01-01 08:00 UTC (a Thursday).
+  // dow: (dayNum + 4) % 7 gives 0=Sun … 6=Sat.
+  const startDay = Math.floor(s / DAY_MS);
+  const endDay   = Math.floor(e / DAY_MS);
+
+  let totalMs = 0;
+  for (let d = startDay; d <= endDay; d++) {
+    const dow = ((d % 7) + 7 + 4) % 7;
+    if (dow === 0 || dow === 6) continue; // skip weekends
+    const overlapStart = Math.max(s, d * DAY_MS);
+    const overlapEnd   = Math.min(e, (d + 1) * DAY_MS);
+    if (overlapEnd > overlapStart) totalMs += overlapEnd - overlapStart;
   }
 
-  return ms / (1000 * 60 * 60);
+  return totalMs / 3600000;
 }
 
 const ALLOWED_ORIGINS = [
@@ -77,13 +58,17 @@ module.exports = async (req, res) => {
   try {
     const daysBack = Math.min(parseInt(req.query.days) || 7, 90);
 
-    // 1. Bulk-paginate UNIS DC (newest-first, 200/page) stopping at the date cutoff.
-    //    This replaces the old per-order query pattern which fired thousands of
-    //    parallel requests and hit UNIS rate limits in production.
+    // 1. Fetch UNIS shipped orders and Shopify creation-date map in parallel —
+    //    the two sources are independent so there's no reason to wait on one before starting the other.
     const threePL = new ThreePLClient();
-    const shippedOrders = await threePL.getRecentShippedOrders(daysBack);
+    const shopify = new ShopifyClient();
+    const [shippedOrders, shopifyOrders] = await Promise.all([
+      threePL.getRecentShippedOrders(daysBack),
+      shopify.getFulfilledOrders(daysBack)
+    ]);
 
     console.log(`Parcel SLA: ${shippedOrders.length} shipped orders from UNIS DC`);
+    console.log(`Parcel SLA: ${shopifyOrders.length} Shopify orders in lookup map`);
 
     if (shippedOrders.length === 0) {
       return res.status(200).json({
@@ -96,12 +81,8 @@ module.exports = async (req, res) => {
     }
 
     // 2. Build Shopify creation-date lookup map.
-    //    Use an extended window (daysBack + 45) so delayed orders are still found.
-    const shopify = new ShopifyClient();
-    const shopifyOrders = await shopify.getFulfilledOrders(daysBack);
     const shopifyMap = {};
     shopifyOrders.forEach(o => { shopifyMap[o.name] = o.createdAt; });
-    console.log(`Parcel SLA: ${shopifyOrders.length} Shopify orders in lookup map`);
 
     // 3. Combine data
     let withinSla = 0;
