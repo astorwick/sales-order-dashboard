@@ -79,6 +79,15 @@ h1 {
 
 .export-group {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.filter-count {
+  font-size: 13px;
+  color: #666;
+  white-space: nowrap;
 }
 
 /* Tab Navigation */

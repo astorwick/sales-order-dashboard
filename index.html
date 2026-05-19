@@ -225,23 +225,35 @@
           </select>
         </div>
         <div class="filter-group">
-          <label for="usps-carrier-filter">Carrier:</label>
-          <select id="usps-carrier-filter">
-            <option value="all">All Carriers</option>
-          </select>
+          <label>Carrier:</label>
+          <div class="multi-select" id="usps-carrier-dropdown">
+            <button class="multi-select-btn" type="button">All Carriers</button>
+            <div class="multi-select-dropdown"></div>
+          </div>
         </div>
         <div class="filter-group">
-          <label for="usps-status-filter">Status:</label>
-          <select id="usps-status-filter">
-            <option value="all">All Statuses</option>
-            <option value="pre-shipment">Pre-Shipment</option>
-            <option value="IN_TRANSIT">In Transit</option>
-            <option value="OUT_FOR_DELIVERY">Out for Delivery</option>
-            <option value="ATTEMPTED_DELIVERY">Attempted Delivery</option>
-            <option value="DELIVERED">Delivered</option>
-            <option value="FAILURE">Failure</option>
-            <option value="NOT_DELIVERED">Not Delivered</option>
-          </select>
+          <label>Service Level:</label>
+          <div class="multi-select" id="usps-service-dropdown">
+            <button class="multi-select-btn" type="button">All Service Levels</button>
+            <div class="multi-select-dropdown"></div>
+          </div>
+        </div>
+        <div class="filter-group">
+          <label>Status:</label>
+          <div class="multi-select" id="usps-status-dropdown">
+            <button class="multi-select-btn" type="button">All Statuses</button>
+            <div class="multi-select-dropdown">
+              <label class="multi-select-option multi-select-all"><input type="checkbox" class="select-all-cb"> Select All</label>
+              <div class="multi-select-divider"></div>
+              <label class="multi-select-option"><input type="checkbox" value="pre-shipment"> Pre-Shipment</label>
+              <label class="multi-select-option"><input type="checkbox" value="IN_TRANSIT"> In Transit</label>
+              <label class="multi-select-option"><input type="checkbox" value="OUT_FOR_DELIVERY"> Out for Delivery</label>
+              <label class="multi-select-option"><input type="checkbox" value="ATTEMPTED_DELIVERY"> Attempted Delivery</label>
+              <label class="multi-select-option"><input type="checkbox" value="DELIVERED"> Delivered</label>
+              <label class="multi-select-option"><input type="checkbox" value="FAILURE"> Failure</label>
+              <label class="multi-select-option"><input type="checkbox" value="NOT_DELIVERED"> Not Delivered</label>
+            </div>
+          </div>
         </div>
         <div class="filter-group">
           <label for="usps-search">Order #:</label>
@@ -259,6 +271,7 @@
           </select>
         </div>
         <div class="filter-group export-group">
+          <span id="usps-filter-count" class="filter-count"></span>
           <button id="export-usps-btn" class="export-btn">Export CSV</button>
         </div>
       </div>
@@ -271,13 +284,14 @@
               <th>Fulfilled</th>
               <th>Time Since Fulfilled</th>
               <th>Carrier</th>
+              <th>Service Level</th>
               <th>Tracking #</th>
               <th>Shipment Status</th>
             </tr>
           </thead>
           <tbody id="usps-tracker-list">
             <tr>
-              <td colspan="6" class="loading">
+              <td colspan="7" class="loading">
                 <p>Navigate to this tab to load USPS tracking data.</p>
               </td>
             </tr>

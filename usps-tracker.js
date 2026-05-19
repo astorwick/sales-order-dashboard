@@ -2,10 +2,11 @@
 
 let uspsTrackerData = null;
 let uspsTrackerDays = 7;
-let uspsCarrierFilter = 'all';
-let uspsStatusFilter = 'all';
+let uspsCarrierFilter = new Set();
+let uspsStatusFilter = new Set();
 let uspsSearchQuery = '';
 let uspsSortOption = 'time-desc';
+let uspsServiceFilter = new Set();
 
 const PRE_SHIPMENT_STATUSES = new Set([
   'CONFIRMED', 'LABEL_PURCHASED', 'LABEL_PRINTED', 'LABEL_VOIDED', 'MARKED_AS_FULFILLED', 'SUBMITTED'
@@ -44,10 +45,13 @@ function shipmentStatusClass(status) {
 function getFilteredUSPSShipments() {
   if (!uspsTrackerData) return [];
   const filtered = uspsTrackerData.shipments.filter(s => {
-    if (uspsCarrierFilter !== 'all' && s.carrier !== uspsCarrierFilter) return false;
-    if (uspsStatusFilter === 'pre-shipment' && !s.isPreShipment) return false;
-    if (uspsStatusFilter !== 'all' && uspsStatusFilter !== 'pre-shipment' && s.shipmentStatus !== uspsStatusFilter) return false;
+    if (uspsCarrierFilter.size > 0 && !uspsCarrierFilter.has(s.carrier)) return false;
+    if (uspsStatusFilter.size > 0) {
+      const passes = (uspsStatusFilter.has('pre-shipment') && s.isPreShipment) || uspsStatusFilter.has(s.shipmentStatus);
+      if (!passes) return false;
+    }
     if (uspsSearchQuery && !s.orderName.toLowerCase().includes(uspsSearchQuery.toLowerCase())) return false;
+    if (uspsServiceFilter.size > 0 && !uspsServiceFilter.has(s.serviceLevel)) return false;
     return true;
   });
 
@@ -69,7 +73,7 @@ function getFilteredUSPSShipments() {
 function loadUSPSTracker() {
   const startTime = Date.now();
   const tbody = document.getElementById('usps-tracker-list');
-  tbody.innerHTML = '<tr><td colspan="6" class="loading"><div class="loading-spinner"></div><p>Loading shipments...</p></td></tr>';
+  tbody.innerHTML = '<tr><td colspan="7" class="loading"><div class="loading-spinner"></div><p>Loading shipments...</p></td></tr>';
   document.getElementById('usps-tracker-summary-total').textContent = '-';
   document.getElementById('usps-tracker-summary-pre').textContent = '-';
   fetch(`${API_BASE}/usps-tracker?days=${uspsTrackerDays}`)
@@ -83,24 +87,194 @@ function loadUSPSTracker() {
       showTabLastUpdated();
     })
     .catch(err => {
-      tbody.innerHTML = `<tr><td colspan="6" class="loading"><p>Error loading data: ${escapeHtml(err.message)}</p></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" class="loading"><p>Error loading data: ${escapeHtml(err.message)}</p></td></tr>`;
     });
+}
+
+function buildUSPSCarrierOptions(carriers) {
+  const container = document.getElementById('usps-carrier-dropdown');
+  const btn = container.querySelector('.multi-select-btn');
+  const dropdown = container.querySelector('.multi-select-dropdown');
+
+  dropdown.innerHTML = [
+    '<label class="multi-select-option multi-select-all"><input type="checkbox" class="select-all-cb"> Select All</label>',
+    '<div class="multi-select-divider"></div>',
+    ...carriers.map(c => `<label class="multi-select-option"><input type="checkbox" value="${escapeHtml(c)}"> ${escapeHtml(c)}</label>`)
+  ].join('');
+
+  const selectAllCb = dropdown.querySelector('.select-all-cb');
+  const optionCbs = [...dropdown.querySelectorAll('input[type="checkbox"]:not(.select-all-cb)')];
+
+  if (uspsCarrierFilter.size === 0) {
+    optionCbs.forEach(cb => { cb.checked = true; });
+    selectAllCb.checked = true;
+  } else {
+    optionCbs.forEach(cb => { cb.checked = uspsCarrierFilter.has(cb.value); });
+    const n = optionCbs.filter(cb => cb.checked).length;
+    selectAllCb.checked = n === optionCbs.length;
+    selectAllCb.indeterminate = n > 0 && n < optionCbs.length;
+  }
+
+  function syncFilterAndLabel() {
+    const checked = optionCbs.filter(cb => cb.checked);
+    const allChecked = checked.length === optionCbs.length;
+    uspsCarrierFilter = (checked.length === 0 || allChecked) ? new Set() : new Set(checked.map(c => c.value));
+    if (checked.length === 0 || allChecked) {
+      btn.textContent = 'All Carriers';
+    } else if (checked.length === 1) {
+      btn.textContent = checked[0].value;
+    } else {
+      btn.textContent = `${checked.length} selected`;
+    }
+    applyUSPSFiltersAndRender();
+  }
+
+  selectAllCb.addEventListener('change', () => {
+    optionCbs.forEach(cb => { cb.checked = selectAllCb.checked; });
+    selectAllCb.indeterminate = false;
+    syncFilterAndLabel();
+  });
+
+  optionCbs.forEach(cb => {
+    cb.addEventListener('change', () => {
+      const n = optionCbs.filter(c => c.checked).length;
+      selectAllCb.checked = n === optionCbs.length;
+      selectAllCb.indeterminate = n > 0 && n < optionCbs.length;
+      syncFilterAndLabel();
+    });
+  });
+}
+
+function setupUSPSStatusMultiSelect() {
+  const container = document.getElementById('usps-status-dropdown');
+  const btn = container.querySelector('.multi-select-btn');
+  const selectAllCb = container.querySelector('.select-all-cb');
+  const optionCbs = [...container.querySelectorAll('input[type="checkbox"]:not(.select-all-cb)')];
+
+  optionCbs.forEach(cb => { cb.checked = true; });
+  selectAllCb.checked = true;
+
+  function syncFilterAndLabel() {
+    const checked = optionCbs.filter(cb => cb.checked);
+    const allChecked = checked.length === optionCbs.length;
+    uspsStatusFilter = (checked.length === 0 || allChecked) ? new Set() : new Set(checked.map(c => c.value));
+    if (checked.length === 0 || allChecked) {
+      btn.textContent = 'All Statuses';
+    } else if (checked.length === 1) {
+      btn.textContent = checked[0].closest('.multi-select-option').textContent.trim();
+    } else {
+      btn.textContent = `${checked.length} selected`;
+    }
+    applyUSPSFiltersAndRender();
+  }
+
+  selectAllCb.addEventListener('change', () => {
+    optionCbs.forEach(cb => { cb.checked = selectAllCb.checked; });
+    selectAllCb.indeterminate = false;
+    syncFilterAndLabel();
+  });
+
+  optionCbs.forEach(cb => {
+    cb.addEventListener('change', () => {
+      const n = optionCbs.filter(c => c.checked).length;
+      selectAllCb.checked = n === optionCbs.length;
+      selectAllCb.indeterminate = n > 0 && n < optionCbs.length;
+      syncFilterAndLabel();
+    });
+  });
+}
+
+function buildUSPSServiceOptions(serviceLevels) {
+  const container = document.getElementById('usps-service-dropdown');
+  const btn = container.querySelector('.multi-select-btn');
+  const dropdown = container.querySelector('.multi-select-dropdown');
+
+  dropdown.innerHTML = [
+    '<label class="multi-select-option multi-select-all"><input type="checkbox" class="select-all-cb"> Select All</label>',
+    '<div class="multi-select-divider"></div>',
+    ...serviceLevels.map(sl => `<label class="multi-select-option"><input type="checkbox" value="${escapeHtml(sl)}"> ${escapeHtml(sl)}</label>`)
+  ].join('');
+
+  const selectAllCb = dropdown.querySelector('.select-all-cb');
+  const optionCbs = [...dropdown.querySelectorAll('input[type="checkbox"]:not(.select-all-cb)')];
+
+  if (uspsServiceFilter.size === 0) {
+    optionCbs.forEach(cb => { cb.checked = true; });
+    selectAllCb.checked = true;
+  } else {
+    optionCbs.forEach(cb => { cb.checked = uspsServiceFilter.has(cb.value); });
+    const n = optionCbs.filter(cb => cb.checked).length;
+    selectAllCb.checked = n === optionCbs.length;
+    selectAllCb.indeterminate = n > 0 && n < optionCbs.length;
+  }
+
+  function syncFilterAndLabel() {
+    const checked = optionCbs.filter(cb => cb.checked);
+    const allChecked = checked.length === optionCbs.length;
+    uspsServiceFilter = (checked.length === 0 || allChecked) ? new Set() : new Set(checked.map(c => c.value));
+    if (checked.length === 0 || allChecked) {
+      btn.textContent = 'All Service Levels';
+    } else if (checked.length === 1) {
+      btn.textContent = checked[0].value;
+    } else {
+      btn.textContent = `${checked.length} selected`;
+    }
+    applyUSPSFiltersAndRender();
+  }
+
+  selectAllCb.addEventListener('change', () => {
+    optionCbs.forEach(cb => { cb.checked = selectAllCb.checked; });
+    selectAllCb.indeterminate = false;
+    syncFilterAndLabel();
+  });
+
+  optionCbs.forEach(cb => {
+    cb.addEventListener('change', () => {
+      const n = optionCbs.filter(c => c.checked).length;
+      selectAllCb.checked = n === optionCbs.length;
+      selectAllCb.indeterminate = n > 0 && n < optionCbs.length;
+      syncFilterAndLabel();
+    });
+  });
+}
+
+function applyUSPSFiltersAndRender() {
+  if (!uspsTrackerData) return;
+  const filtered = getFilteredUSPSShipments();
+  document.getElementById('usps-filter-count').textContent = `${filtered.length} Order${filtered.length !== 1 ? 's' : ''}`;
+  const tbody = document.getElementById('usps-tracker-list');
+
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="loading"><p>No shipments match the current filters.</p></td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(s => {
+    const statusClass = shipmentStatusClass(s.shipmentStatus);
+    const trackingDisplay = s.trackingUrl
+      ? `<a href="${escapeHtml(s.trackingUrl)}" target="_blank" rel="noopener">${escapeHtml(s.trackingNumber || '—')}</a>`
+      : escapeHtml(s.trackingNumber || '—');
+    return `
+      <tr>
+        <td><span class="order-number">${escapeHtml(s.orderName)}</span></td>
+        <td>${s.fulfilledAt ? formatDate(s.fulfilledAt) : '—'}</td>
+        <td>${s.fulfilledAt ? formatTime(Math.floor((Date.now() - new Date(s.fulfilledAt)) / 60000)) : '—'}</td>
+        <td>${escapeHtml(s.carrier || '—')}</td>
+        <td>${escapeHtml(s.serviceLevel || '—')}</td>
+        <td>${trackingDisplay}</td>
+        <td><span class="status-badge ${statusClass}">${escapeHtml(formatShipmentStatus(s.shipmentStatus))}</span></td>
+      </tr>
+    `;
+  }).join('');
 }
 
 function renderUSPSTracker() {
   if (!uspsTrackerData) return;
-  // Rebuild carrier filter options from live data
-  const carrierSelect = document.getElementById('usps-carrier-filter');
-  const currentCarrier = carrierSelect.value;
   const carriers = [...new Set(uspsTrackerData.shipments.map(s => s.carrier).filter(Boolean))].sort();
-  carrierSelect.innerHTML = '<option value="all">All Carriers</option>';
-  carriers.forEach(c => {
-    const opt = document.createElement('option');
-    opt.value = c;
-    opt.textContent = c;
-    carrierSelect.appendChild(opt);
-  });
-  carrierSelect.value = carriers.includes(currentCarrier) ? currentCarrier : 'all';
+  buildUSPSCarrierOptions(carriers);
+
+  const serviceLevels = [...new Set(uspsTrackerData.shipments.map(s => s.serviceLevel).filter(Boolean))].sort();
+  buildUSPSServiceOptions(serviceLevels);
 
   const by = uspsTrackerData.summary.byStatus;
   document.getElementById('usps-tracker-summary-total').textContent = uspsTrackerData.summary.total;
@@ -121,42 +295,20 @@ function renderUSPSTracker() {
     }
   });
 
-  const filtered = getFilteredUSPSShipments();
-  const tbody = document.getElementById('usps-tracker-list');
-
-  if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="6" class="loading"><p>No shipments match the current filters.</p></td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = filtered.map(s => {
-    const statusClass = shipmentStatusClass(s.shipmentStatus);
-    const trackingDisplay = s.trackingUrl
-      ? `<a href="${escapeHtml(s.trackingUrl)}" target="_blank" rel="noopener">${escapeHtml(s.trackingNumber || '—')}</a>`
-      : escapeHtml(s.trackingNumber || '—');
-    return `
-      <tr>
-        <td><span class="order-number">${escapeHtml(s.orderName)}</span></td>
-        <td>${s.fulfilledAt ? formatDate(s.fulfilledAt) : '—'}</td>
-        <td>${s.fulfilledAt ? formatTime(Math.floor((Date.now() - new Date(s.fulfilledAt)) / 60000)) : '—'}</td>
-        <td>${escapeHtml(s.carrier || '—')}</td>
-        <td>${trackingDisplay}</td>
-        <td><span class="status-badge ${statusClass}">${escapeHtml(formatShipmentStatus(s.shipmentStatus))}</span></td>
-      </tr>
-    `;
-  }).join('');
+  applyUSPSFiltersAndRender();
 }
 
 function exportUSPSTrackerCSV() {
   const filtered = getFilteredUSPSShipments();
   if (!filtered.length) return;
 
-  const headers = ['Order #', 'Fulfilled', 'Time Since Fulfilled', 'Carrier', 'Tracking #', 'Shipment Status'];
+  const headers = ['Order #', 'Fulfilled', 'Time Since Fulfilled', 'Carrier', 'Service Level', 'Tracking #', 'Shipment Status'];
   const rows = filtered.map(s => [
     csvEscape(s.orderName),
     csvEscape(s.fulfilledAt ? new Date(s.fulfilledAt).toLocaleString() : ''),
     csvEscape(s.fulfilledAt ? formatTime(Math.floor((Date.now() - new Date(s.fulfilledAt)) / 60000)) : ''),
     csvEscape(s.carrier || ''),
+    csvEscape(s.serviceLevel || ''),
     csvEscape(s.trackingNumber || ''),
     csvEscape(formatShipmentStatus(s.shipmentStatus))
   ].join(','));
@@ -172,25 +324,28 @@ function initUSPSTracker() {
     loadUSPSTracker();
   });
 
-  document.getElementById('usps-carrier-filter').addEventListener('change', e => {
-    uspsCarrierFilter = e.target.value;
-    renderUSPSTracker();
-  });
-
-  document.getElementById('usps-status-filter').addEventListener('change', e => {
-    uspsStatusFilter = e.target.value;
-    renderUSPSTracker();
-  });
-
   document.getElementById('usps-search').addEventListener('input', e => {
     uspsSearchQuery = e.target.value.trim();
-    renderUSPSTracker();
+    applyUSPSFiltersAndRender();
   });
 
   document.getElementById('usps-sort').addEventListener('change', e => {
     uspsSortOption = e.target.value;
-    renderUSPSTracker();
+    applyUSPSFiltersAndRender();
   });
+
+  ['usps-carrier-dropdown', 'usps-status-dropdown', 'usps-service-dropdown'].forEach(id => {
+    const el = document.getElementById(id);
+    el.querySelector('.multi-select-btn').addEventListener('click', e => {
+      e.stopPropagation();
+      document.querySelectorAll('.multi-select.open').forEach(ms => {
+        if (ms !== el) ms.classList.remove('open');
+      });
+      el.classList.toggle('open');
+    });
+  });
+
+  setupUSPSStatusMultiSelect();
 
   document.getElementById('export-usps-btn').addEventListener('click', exportUSPSTrackerCSV);
 }
