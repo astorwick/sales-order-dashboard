@@ -129,8 +129,7 @@ function renderParcelSummary(summary) {
   document.getElementById('parcel-summary-ups').textContent = summary.ups + pct(summary.ups);
   document.getElementById('parcel-summary-usps').textContent = summary.usps + pct(summary.usps);
   document.getElementById('parcel-summary-fedex').textContent = summary.fedex + pct(summary.fedex);
-  const amazon = summary.amazon ?? 0;
-  document.getElementById('parcel-summary-amazon').textContent = amazon + pct(amazon);
+  document.getElementById('parcel-summary-amazon').textContent = summary.amazon + pct(summary.amazon);
 }
 
 function renderParcelRow(order) {
