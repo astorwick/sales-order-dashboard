@@ -125,7 +125,7 @@ function renderParcelSummary(summary) {
   const pct = (n) => total > 0 ? ` (${((n / total) * 100).toFixed(1)}%)` : '';
   document.getElementById('parcel-summary-total').textContent = total;
   document.getElementById('parcel-summary-within-sla').textContent = summary.withinSla;
-  document.getElementById('parcel-summary-past-sla').textContent = summary.pastSla;
+  document.getElementById('parcel-summary-past-sla').textContent = summary.pastSla + pct(summary.pastSla);
   document.getElementById('parcel-summary-ups').textContent = summary.ups + pct(summary.ups);
   document.getElementById('parcel-summary-usps').textContent = summary.usps + pct(summary.usps);
   document.getElementById('parcel-summary-fedex').textContent = summary.fedex + pct(summary.fedex);

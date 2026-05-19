@@ -69,10 +69,9 @@ function getFilteredUSPSShipments() {
 function loadUSPSTracker() {
   const startTime = Date.now();
   const tbody = document.getElementById('usps-tracker-list');
-  tbody.innerHTML = '<tr><td colspan="5" class="loading"><div class="loading-spinner"></div><p>Loading shipments...</p></td></tr>';
+  tbody.innerHTML = '<tr><td colspan="6" class="loading"><div class="loading-spinner"></div><p>Loading shipments...</p></td></tr>';
   document.getElementById('usps-tracker-summary-total').textContent = '-';
   document.getElementById('usps-tracker-summary-pre').textContent = '-';
-
   fetch(`${API_BASE}/usps-tracker?days=${uspsTrackerDays}`)
     .then(r => r.json())
     .then(data => {
@@ -84,7 +83,7 @@ function loadUSPSTracker() {
       showTabLastUpdated();
     })
     .catch(err => {
-      tbody.innerHTML = `<tr><td colspan="5" class="loading"><p>Error loading data: ${escapeHtml(err.message)}</p></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="loading"><p>Error loading data: ${escapeHtml(err.message)}</p></td></tr>`;
     });
 }
 
@@ -126,7 +125,7 @@ function renderUSPSTracker() {
   const tbody = document.getElementById('usps-tracker-list');
 
   if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="loading"><p>No shipments match the current filters.</p></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="loading"><p>No shipments match the current filters.</p></td></tr>';
     return;
   }
 
