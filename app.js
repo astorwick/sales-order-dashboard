@@ -261,6 +261,9 @@ function renderOrders(ordersData) {
     }
   });
 
+  const countEl = document.getElementById('orders-filter-count');
+  if (countEl) countEl.textContent = `${filtered.length} Order${filtered.length !== 1 ? 's' : ''}`;
+
   if (filtered.length === 0) {
     elements.ordersList.innerHTML = `
       <tr>
