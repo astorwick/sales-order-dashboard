@@ -567,7 +567,8 @@ h1 {
 }
 
 .inv-table {
-  min-width: 1200px;
+  min-width: 1355px;
+  table-layout: fixed;
 }
 
 .inv-table th,
@@ -672,8 +673,8 @@ td.period-30d {
 
 .inv-table td:nth-child(2),
 .inv-table th:nth-child(2) {
-  width: 180px;
-  max-width: 180px;
+  width: 240px;
+  max-width: 240px;
 }
 
 .inv-sku {
@@ -687,7 +688,7 @@ td.period-30d {
 
 .inv-desc {
   display: block;
-  max-width: 180px;
+  max-width: 240px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
