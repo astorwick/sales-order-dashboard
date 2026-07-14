@@ -135,7 +135,10 @@ module.exports = async (req, res) => {
         trackingNumber: unis.trackingNumber || null,
         carrier: unis.carrier || '',
         slaHours: slaHours !== null ? Math.round(slaHours * 10) / 10 : null,
-        withinSla: withinSlaFlag
+        withinSla: withinSlaFlag,
+        state: unis.shipToState || '',
+        weight: unis.weight !== null && unis.weight !== undefined ? unis.weight : null,
+        freightCost: unis.freightCost !== null && unis.freightCost !== undefined ? unis.freightCost : null
       });
     }
 

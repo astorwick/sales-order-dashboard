@@ -114,6 +114,29 @@ function applyParcelFiltersAndRender() {
   renderParcelOrders(sortParcelOrders(filterParcelOrders(parcelSlaData)));
 }
 
+function exportParcelSlaCSV() {
+  const filtered = sortParcelOrders(filterParcelOrders(parcelSlaData));
+  if (!filtered.length) return;
+
+  const headers = ['Order #', 'PO #', 'Created', 'Shipped', 'SLA (hrs)', 'Tracking ID', 'Carrier', 'State', 'Weight', 'Freight Cost'];
+  const rows = filtered.map(order => [
+    csvEscape(order.orderNo),
+    csvEscape(order.poNo),
+    csvEscape(order.createdAt ? new Date(order.createdAt).toLocaleString() : ''),
+    csvEscape(order.shippedDate ? new Date(order.shippedDate).toLocaleString() : ''),
+    csvEscape(formatSlaHours(order.slaHours)),
+    csvEscape(order.trackingNumber || ''),
+    csvEscape(order.carrier || ''),
+    csvEscape(order.state || ''),
+    csvEscape(order.weight !== null && order.weight !== undefined ? order.weight : ''),
+    csvEscape(order.freightCost !== null && order.freightCost !== undefined ? order.freightCost : '')
+  ].join(','));
+
+  const csv = [headers.join(','), ...rows].join('\n');
+  const date = new Date().toISOString().slice(0, 10);
+  downloadCSV(`parcel-sla-${date}.csv`, csv);
+}
+
 async function fetchParcelSla(days) {
   const response = await fetch(`${PARCEL_API}?days=${days}`);
   if (!response.ok) throw new Error('Failed to fetch parcel SLA data');
@@ -145,6 +168,9 @@ function renderParcelRow(order) {
       <td><span class="sla-time ${slaClass}">${slaDisplay}</span></td>
       <td class="tracking-cell">${escapeParcelHtml(order.trackingNumber || '-')}</td>
       <td>${escapeParcelHtml(order.carrier)}</td>
+      <td>${escapeParcelHtml(order.state || '-')}</td>
+      <td>${order.weight !== null && order.weight !== undefined ? `${order.weight} lb` : '-'}</td>
+      <td>${order.freightCost !== null && order.freightCost !== undefined ? formatCurrency(order.freightCost) : '-'}</td>
     </tr>
   `;
 }
@@ -152,10 +178,13 @@ function renderParcelRow(order) {
 function renderParcelOrders(orders) {
   const tbody = document.getElementById('parcel-sla-list');
 
+  const countEl = document.getElementById('parcel-filter-count');
+  if (countEl) countEl.textContent = `${orders.length} Order${orders.length !== 1 ? 's' : ''}`;
+
   if (orders.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="7" class="empty-state">
+        <td colspan="10" class="empty-state">
           No parcel orders found for this period
         </td>
       </tr>
@@ -169,7 +198,7 @@ function renderParcelOrders(orders) {
 function renderParcelLoading() {
   document.getElementById('parcel-sla-list').innerHTML = `
     <tr>
-      <td colspan="7" class="loading">
+      <td colspan="10" class="loading">
         <div class="loading-spinner"></div>
         <p>Loading parcel SLA data...</p>
       </td>
@@ -180,7 +209,7 @@ function renderParcelLoading() {
 function renderParcelError(message) {
   document.getElementById('parcel-sla-list').innerHTML = `
     <tr>
-      <td colspan="7" class="error">
+      <td colspan="10" class="error">
         <p>Error: ${message}</p>
         <button onclick="loadParcelSla()" class="refresh-btn" style="margin-top: 12px;">Retry</button>
       </td>
@@ -256,4 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
     parcelShippedTo = e.target.value;
     applyParcelFiltersAndRender();
   });
+
+  const exportBtn = document.getElementById('export-parcel-btn');
+  if (exportBtn) exportBtn.addEventListener('click', exportParcelSlaCSV);
 });
