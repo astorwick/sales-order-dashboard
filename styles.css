@@ -723,16 +723,6 @@ td.period-30d {
 .summary-card.parcel-fedex .value { color: #4D148C; }
 .summary-card.parcel-amazon .value { color: #FF9900; }
 
-.parcel-date-range input[type="date"] {
-  width: 145px;
-}
-
-.date-sep {
-  color: #999;
-  font-size: 13px;
-  padding: 0 2px;
-}
-
 .sla-time {
   font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
   font-size: 13px;

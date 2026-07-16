@@ -7,10 +7,6 @@ let parcelDaysFilter = 7;
 let parcelStatusFilter = 'all';
 let parcelCarrierFilter = 'all';
 let parcelSortOption = 'shipped-desc';
-let parcelCreatedFrom = '';
-let parcelCreatedTo = '';
-let parcelShippedFrom = '';
-let parcelShippedTo = '';
 
 function formatParcelDate(dateString) {
   if (!dateString) return '-';
@@ -60,20 +56,6 @@ function filterParcelOrders(orders) {
     if (parcelStatusFilter === 'past-sla' && order.withinSla !== false) return false;
     if (parcelCarrierFilter !== 'all' && !matchesCarrierFilter(order.carrier, parcelCarrierFilter)) return false;
 
-    if (parcelCreatedFrom || parcelCreatedTo) {
-      const created = order.createdAt ? order.createdAt.slice(0, 10) : null;
-      if (!created) return false;
-      if (parcelCreatedFrom && created < parcelCreatedFrom) return false;
-      if (parcelCreatedTo && created > parcelCreatedTo) return false;
-    }
-
-    if (parcelShippedFrom || parcelShippedTo) {
-      const shipped = order.shippedDate ? order.shippedDate.slice(0, 10) : null;
-      if (!shipped) return false;
-      if (parcelShippedFrom && shipped < parcelShippedFrom) return false;
-      if (parcelShippedTo && shipped > parcelShippedTo) return false;
-    }
-
     return true;
   });
 }
@@ -118,7 +100,7 @@ function exportParcelSlaCSV() {
   const filtered = sortParcelOrders(filterParcelOrders(parcelSlaData));
   if (!filtered.length) return;
 
-  const headers = ['Order #', 'PO #', 'Created', 'Shipped', 'SLA (hrs)', 'Tracking ID', 'Carrier', 'State', 'Weight', 'Freight Cost'];
+  const headers = ['Order #', 'PO #', 'Created', 'Shipped', 'SLA (hrs)', 'Tracking ID', 'Carrier', 'PCS', 'State', 'Weight', 'Freight Cost'];
   const rows = filtered.map(order => [
     csvEscape(order.orderNo),
     csvEscape(order.poNo),
@@ -127,6 +109,7 @@ function exportParcelSlaCSV() {
     csvEscape(formatSlaHours(order.slaHours)),
     csvEscape(order.trackingNumber || ''),
     csvEscape(order.carrier || ''),
+    csvEscape(order.pcs !== null && order.pcs !== undefined ? order.pcs : ''),
     csvEscape(order.state || ''),
     csvEscape(order.weight !== null && order.weight !== undefined ? order.weight : ''),
     csvEscape(order.freightCost !== null && order.freightCost !== undefined ? order.freightCost : '')
@@ -168,6 +151,7 @@ function renderParcelRow(order) {
       <td><span class="sla-time ${slaClass}">${slaDisplay}</span></td>
       <td class="tracking-cell">${escapeParcelHtml(order.trackingNumber || '-')}</td>
       <td>${escapeParcelHtml(order.carrier)}</td>
+      <td>${order.pcs !== null && order.pcs !== undefined ? order.pcs : '-'}</td>
       <td>${escapeParcelHtml(order.state || '-')}</td>
       <td>${order.weight !== null && order.weight !== undefined ? `${order.weight} lb` : '-'}</td>
       <td>${order.freightCost !== null && order.freightCost !== undefined ? formatCurrency(order.freightCost) : '-'}</td>
@@ -184,7 +168,7 @@ function renderParcelOrders(orders) {
   if (orders.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="10" class="empty-state">
+        <td colspan="11" class="empty-state">
           No parcel orders found for this period
         </td>
       </tr>
@@ -198,7 +182,7 @@ function renderParcelOrders(orders) {
 function renderParcelLoading() {
   document.getElementById('parcel-sla-list').innerHTML = `
     <tr>
-      <td colspan="10" class="loading">
+      <td colspan="11" class="loading">
         <div class="loading-spinner"></div>
         <p>Loading parcel SLA data...</p>
       </td>
@@ -209,7 +193,7 @@ function renderParcelLoading() {
 function renderParcelError(message) {
   document.getElementById('parcel-sla-list').innerHTML = `
     <tr>
-      <td colspan="10" class="error">
+      <td colspan="11" class="error">
         <p>Error: ${message}</p>
         <button onclick="loadParcelSla()" class="refresh-btn" style="margin-top: 12px;">Retry</button>
       </td>
@@ -259,30 +243,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const sortSelect = document.getElementById('parcel-sort-filter');
   if (sortSelect) sortSelect.addEventListener('change', e => {
     parcelSortOption = e.target.value;
-    applyParcelFiltersAndRender();
-  });
-
-  const createdFrom = document.getElementById('parcel-created-from');
-  if (createdFrom) createdFrom.addEventListener('change', e => {
-    parcelCreatedFrom = e.target.value;
-    applyParcelFiltersAndRender();
-  });
-
-  const createdTo = document.getElementById('parcel-created-to');
-  if (createdTo) createdTo.addEventListener('change', e => {
-    parcelCreatedTo = e.target.value;
-    applyParcelFiltersAndRender();
-  });
-
-  const shippedFrom = document.getElementById('parcel-shipped-from');
-  if (shippedFrom) shippedFrom.addEventListener('change', e => {
-    parcelShippedFrom = e.target.value;
-    applyParcelFiltersAndRender();
-  });
-
-  const shippedTo = document.getElementById('parcel-shipped-to');
-  if (shippedTo) shippedTo.addEventListener('change', e => {
-    parcelShippedTo = e.target.value;
     applyParcelFiltersAndRender();
   });
 

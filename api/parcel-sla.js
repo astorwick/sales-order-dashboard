@@ -136,6 +136,7 @@ module.exports = async (req, res) => {
         carrier: unis.carrier || '',
         slaHours: slaHours !== null ? Math.round(slaHours * 10) / 10 : null,
         withinSla: withinSlaFlag,
+        pcs: unis.pcs !== null && unis.pcs !== undefined ? unis.pcs : null,
         state: unis.shipToState || '',
         weight: unis.weight !== null && unis.weight !== undefined ? unis.weight : null,
         freightCost: unis.freightCost !== null && unis.freightCost !== undefined ? unis.freightCost : null

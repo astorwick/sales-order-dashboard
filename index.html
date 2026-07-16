@@ -487,18 +487,6 @@
             <option value="sla-desc">SLA (Longest)</option>
           </select>
         </div>
-        <div class="filter-group parcel-date-range">
-          <label>Created:</label>
-          <input type="date" id="parcel-created-from" title="Created from">
-          <span class="date-sep">–</span>
-          <input type="date" id="parcel-created-to" title="Created to">
-        </div>
-        <div class="filter-group parcel-date-range">
-          <label>Shipped:</label>
-          <input type="date" id="parcel-shipped-from" title="Shipped from">
-          <span class="date-sep">–</span>
-          <input type="date" id="parcel-shipped-to" title="Shipped to">
-        </div>
         <div class="filter-group export-group">
           <span id="parcel-filter-count" class="filter-count"></span>
           <button id="export-parcel-btn" class="export-btn">Export CSV</button>
@@ -517,6 +505,7 @@
               <th>SLA (hrs)</th>
               <th>Tracking ID</th>
               <th>Carrier</th>
+              <th>PCS</th>
               <th>State</th>
               <th>Weight</th>
               <th>Freight Cost</th>
@@ -524,7 +513,7 @@
           </thead>
           <tbody id="parcel-sla-list">
             <tr>
-              <td colspan="10" class="loading">
+              <td colspan="11" class="loading">
                 <p>Navigate to this tab to load parcel SLA data.</p>
               </td>
             </tr>
