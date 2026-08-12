@@ -737,6 +737,61 @@ td.period-30d {
   color: #e63946;
 }
 
+/* CX Ship Cost: combined SLA card */
+.summary-card.sla-combined .sla-combined-values {
+  display: flex;
+  gap: 20px;
+}
+
+.summary-card.sla-combined .sla-stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.summary-card.sla-combined .sla-stat .value {
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.summary-card.sla-combined .sla-stat.within .value { color: #2a9d8f; }
+.summary-card.sla-combined .sla-stat.past .value { color: #e63946; }
+
+.summary-card.sla-combined .sub-label {
+  font-size: 11px;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* CX Ship Cost: carrier cards with weight/cost stats on the right half */
+.summary-card.carrier-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.summary-card.carrier-card .carrier-card-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.summary-card.carrier-card .carrier-stat {
+  font-size: 12px;
+  font-weight: 600;
+  color: #444;
+}
+
+.summary-card.carrier-card .carrier-stat-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #999;
+  margin-right: 6px;
+}
+
 .tracking-cell {
   font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
   font-size: 12px;
@@ -744,178 +799,6 @@ td.period-30d {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-/* Trivia Game */
-.trivia-container {
-  max-width: 700px;
-  margin: 0 auto;
-}
-
-.trivia-score-bar {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  margin-bottom: 24px;
-  padding: 16px 20px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.trivia-score {
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.trivia-score.correct {
-  color: #2a9d8f;
-}
-
-.trivia-score.incorrect {
-  color: #e63946;
-}
-
-.trivia-score span {
-  font-size: 20px;
-}
-
-.trivia-warning {
-  margin-left: auto;
-  font-size: 12px;
-  color: #999;
-  font-style: italic;
-}
-
-.trivia-card {
-  background: white;
-  border-radius: 12px;
-  padding: 32px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.trivia-category {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  background: #e8edff;
-  color: #4361ee;
-  margin-bottom: 16px;
-}
-
-.trivia-question {
-  font-size: 20px;
-  font-weight: 600;
-  color: #1a1a2e;
-  margin-bottom: 24px;
-  line-height: 1.4;
-}
-
-.trivia-choices {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-
-.trivia-choice-btn {
-  padding: 14px 20px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  background: white;
-  font-size: 15px;
-  text-align: left;
-  cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
-}
-
-.trivia-choice-btn:hover:not(:disabled) {
-  border-color: #4361ee;
-  background: #f8f9ff;
-}
-
-.trivia-choice-btn:disabled {
-  cursor: default;
-}
-
-.trivia-choice-btn.selected-correct {
-  border-color: #2a9d8f;
-  background: #e6f4f1;
-  color: #2a9d8f;
-  font-weight: 600;
-}
-
-.trivia-choice-btn.selected-wrong {
-  border-color: #e63946;
-  background: #fde8e8;
-  color: #e63946;
-  font-weight: 600;
-}
-
-.trivia-choice-btn.reveal-correct {
-  border-color: #2a9d8f;
-  background: #e6f4f1;
-}
-
-.trivia-feedback {
-  padding: 16px;
-  border-radius: 8px;
-  font-size: 14px;
-  line-height: 1.5;
-  display: none;
-}
-
-.trivia-feedback.correct {
-  display: block;
-  background: #e6f4f1;
-  color: #2a9d8f;
-}
-
-.trivia-feedback.incorrect {
-  display: block;
-  background: #fde8e8;
-  color: #e63946;
-}
-
-.trivia-next-btn {
-  margin-top: 20px;
-  padding: 12px 32px;
-  background: #4361ee;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 15px;
-  font-weight: 500;
-  transition: background 0.2s;
-}
-
-.trivia-next-btn:hover {
-  background: #3651d4;
-}
-
-@media (max-width: 768px) {
-  .trivia-score-bar {
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-
-  .trivia-warning {
-    margin-left: 0;
-    width: 100%;
-  }
-
-  .trivia-card {
-    padding: 20px;
-  }
-
-  .trivia-question {
-    font-size: 17px;
-  }
 }
 
 /* Tooltip */

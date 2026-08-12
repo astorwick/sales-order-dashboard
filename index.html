@@ -22,14 +22,11 @@
       <a href="#/orders" class="tab-link active" data-tab="orders">Unshipped Orders - US</a>
       <a href="#/orders-ca" class="tab-link" data-tab="orders-ca">Unshipped Orders - CA</a>
       <a href="#/parcel-sla" class="tab-link" data-tab="parcel-sla">Parcel SLA</a>
+      <a href="#/cx-ship-cost" class="tab-link" data-tab="cx-ship-cost">CX Ship Cost</a>
       <a href="#/usps-tracker" class="tab-link" data-tab="usps-tracker">Parcel Delivery Status</a>
       <a href="#/canceled" class="tab-link" data-tab="canceled">Canceled Orders</a>
       <a href="#/inventory" class="tab-link" data-tab="inventory">Shopify Run Rate (WIP)</a>
-      <a href="#/ftl-ltl" class="tab-link" data-tab="ftl-ltl">FTL/LTL</a>
-      <a href="#/inbound-sla" class="tab-link" data-tab="inbound-sla">Inbound SLA</a>
       <a href="#/returns" class="tab-link" data-tab="returns">Returns</a>
-      <a href="#/trivia" class="tab-link" data-tab="trivia">Trivia Game</a>
-      <a href="#/sw-trivia" class="tab-link" data-tab="sw-trivia">Star Wars Trivia (Hard)</a>
     </nav>
 
     <!-- Orders View -->
@@ -521,52 +518,154 @@
         </table>
       </div>
     </div>
-  </div>
 
-    <!-- Trivia Game View -->
-    <div id="view-trivia" class="view-panel" style="display: none;">
-      <div class="trivia-container">
-        <div class="trivia-score-bar">
-          <div class="trivia-score correct">Correct: <span id="trivia-correct">0</span></div>
-          <div class="trivia-score incorrect">Wrong: <span id="trivia-incorrect">0</span></div>
-          <div class="trivia-warning">Scores reset if you refresh the page</div>
+    <!-- CX Ship Cost View -->
+    <div id="view-cx-ship-cost" class="view-panel" style="display: none;">
+      <!-- Summary Cards -->
+      <div class="summary-cards">
+        <div class="summary-card">
+          <div class="label">Total Shipped</div>
+          <div class="value" id="cx-summary-total">-</div>
         </div>
+        <div class="summary-card sla-combined">
+          <div class="label">SLA (36h)</div>
+          <div class="sla-combined-values">
+            <div class="sla-stat within">
+              <span class="value" id="cx-summary-within-sla">-</span>
+              <span class="sub-label">Within</span>
+            </div>
+            <div class="sla-stat past">
+              <span class="value" id="cx-summary-past-sla">-</span>
+              <span class="sub-label">Past</span>
+            </div>
+          </div>
+        </div>
+        <div class="summary-card parcel-ups carrier-card">
+          <div class="carrier-card-main">
+            <div class="label">UPS</div>
+            <div class="value" id="cx-summary-ups">-</div>
+          </div>
+          <div class="carrier-card-stats">
+            <div class="carrier-stat"><span class="carrier-stat-label">Avg Wgt</span><span id="cx-summary-ups-avg-weight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Avg</span><span id="cx-summary-ups-avg-freight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Total</span><span id="cx-summary-ups-total-freight">-</span></div>
+          </div>
+        </div>
+        <div class="summary-card parcel-usps carrier-card">
+          <div class="carrier-card-main">
+            <div class="label">USPS</div>
+            <div class="value" id="cx-summary-usps">-</div>
+          </div>
+          <div class="carrier-card-stats">
+            <div class="carrier-stat"><span class="carrier-stat-label">Avg Wgt</span><span id="cx-summary-usps-avg-weight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Avg</span><span id="cx-summary-usps-avg-freight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Total</span><span id="cx-summary-usps-total-freight">-</span></div>
+          </div>
+        </div>
+        <div class="summary-card parcel-fedex carrier-card">
+          <div class="carrier-card-main">
+            <div class="label">FedEx</div>
+            <div class="value" id="cx-summary-fedex">-</div>
+          </div>
+          <div class="carrier-card-stats">
+            <div class="carrier-stat"><span class="carrier-stat-label">Avg Wgt</span><span id="cx-summary-fedex-avg-weight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Avg</span><span id="cx-summary-fedex-avg-freight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Total</span><span id="cx-summary-fedex-total-freight">-</span></div>
+          </div>
+        </div>
+        <div class="summary-card parcel-amazon carrier-card">
+          <div class="carrier-card-main">
+            <div class="label">AmazonShip</div>
+            <div class="value" id="cx-summary-amazon">-</div>
+          </div>
+          <div class="carrier-card-stats">
+            <div class="carrier-stat"><span class="carrier-stat-label">Avg Wgt</span><span id="cx-summary-amazon-avg-weight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Avg</span><span id="cx-summary-amazon-avg-freight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Total</span><span id="cx-summary-amazon-total-freight">-</span></div>
+          </div>
+        </div>
+      </div>
 
-        <div class="trivia-card">
-          <div class="trivia-category" id="trivia-category"></div>
-          <div class="trivia-question" id="trivia-question"></div>
-          <div class="trivia-choices" id="trivia-choices"></div>
-          <div class="trivia-feedback" id="trivia-feedback"></div>
-          <button class="trivia-next-btn" id="trivia-next-btn" style="display: none;">Next Question</button>
+      <!-- Filters -->
+      <div class="filters">
+        <div class="filter-group">
+          <label for="cx-days-filter">Date Range:</label>
+          <select id="cx-days-filter">
+            <option value="7" selected>Last 7 days</option>
+            <option value="14">Last 14 days</option>
+            <option value="30">Last 30 days</option>
+          </select>
         </div>
+        <div class="filter-group">
+          <label for="cx-sla-filter">SLA:</label>
+          <select id="cx-sla-filter">
+            <option value="all">All</option>
+            <option value="within-sla">Within SLA</option>
+            <option value="past-sla">Past SLA</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="cx-carrier-filter">Carrier:</label>
+          <select id="cx-carrier-filter">
+            <option value="all">All Carriers</option>
+            <option value="UPS">UPS</option>
+            <option value="USPS">USPS</option>
+            <option value="FEDEX">FedEx</option>
+            <option value="AMAZON">AmazonShip</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="cx-sort-filter">Sort By:</label>
+          <select id="cx-sort-filter">
+            <option value="shipped-desc" selected>Shipped (Newest)</option>
+            <option value="shipped-asc">Shipped (Oldest)</option>
+            <option value="created-desc">Created (Newest)</option>
+            <option value="created-asc">Created (Oldest)</option>
+            <option value="po-asc">PO # (Ascending)</option>
+            <option value="sla-asc">SLA (Shortest)</option>
+            <option value="sla-desc">SLA (Longest)</option>
+          </select>
+        </div>
+        <div class="filter-group export-group">
+          <span id="cx-filter-count" class="filter-count"></span>
+          <button id="export-cx-btn" class="export-btn">Export CSV</button>
+        </div>
+      </div>
+
+      <!-- CX Ship Cost Table -->
+      <div class="orders-table-container">
+        <table class="orders-table">
+          <thead>
+            <tr>
+              <th>Order #</th>
+              <th>PO #</th>
+              <th>Created</th>
+              <th>Shipped</th>
+              <th>SLA (hrs)</th>
+              <th>Tracking ID</th>
+              <th>Carrier</th>
+              <th>PCS</th>
+              <th>State</th>
+              <th>Weight</th>
+              <th>Freight Cost</th>
+            </tr>
+          </thead>
+          <tbody id="cx-ship-cost-list">
+            <tr>
+              <td colspan="11" class="loading">
+                <p>Navigate to this tab to load CX ship cost data.</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
-
-    <!-- Star Wars Trivia View -->
-    <div id="view-sw-trivia" class="view-panel" style="display: none;">
-      <div class="trivia-container">
-        <div class="trivia-score-bar">
-          <div class="trivia-score correct">Correct: <span id="sw-trivia-correct">0</span></div>
-          <div class="trivia-score incorrect">Wrong: <span id="sw-trivia-incorrect">0</span></div>
-          <div class="trivia-warning">Scores reset if you refresh the page</div>
-        </div>
-
-        <div class="trivia-card">
-          <div class="trivia-category" id="sw-trivia-category"></div>
-          <div class="trivia-question" id="sw-trivia-question"></div>
-          <div class="trivia-choices" id="sw-trivia-choices"></div>
-          <div class="trivia-feedback" id="sw-trivia-feedback"></div>
-          <button class="trivia-next-btn" id="sw-trivia-next-btn" style="display: none;">Next Question</button>
-        </div>
-      </div>
-    </div>
 
   <script src="app.js"></script>
   <script src="usps-tracker.js"></script>
   <script src="inventory.js"></script>
   <script src="parcel-sla.js"></script>
-  <script src="trivia.js"></script>
-  <script src="sw-trivia.js"></script>
+  <script src="cx-ship-cost.js"></script>
 </body>
 </html>

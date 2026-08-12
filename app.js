@@ -14,6 +14,7 @@ let filters = {
 };
 let inventoryLoaded = false;
 let parcelSlaLoaded = false;
+let cxShipCostLoaded = false;
 let uspsTrackerLoaded = false;
 let currentTab = '#/orders';
 let tabLastUpdated = {};
@@ -402,6 +403,8 @@ function refreshCurrentTab() {
     loadInventory();
   } else if (currentTab === '#/parcel-sla' && typeof loadParcelSla === 'function') {
     loadParcelSla();
+  } else if (currentTab === '#/cx-ship-cost' && typeof loadCxShipCost === 'function') {
+    loadCxShipCost();
   }
 }
 
@@ -415,8 +418,7 @@ function handleRouteChange() {
   const viewUspsTracker = document.getElementById('view-usps-tracker');
   const viewInventory = document.getElementById('view-inventory');
   const viewParcelSla = document.getElementById('view-parcel-sla');
-  const viewTrivia = document.getElementById('view-trivia');
-  const viewSwTrivia = document.getElementById('view-sw-trivia');
+  const viewCxShipCost = document.getElementById('view-cx-ship-cost');
 
   // Update active tab
   tabLinks.forEach(link => {
@@ -429,8 +431,7 @@ function handleRouteChange() {
   viewUspsTracker.style.display = 'none';
   viewInventory.style.display = 'none';
   viewParcelSla.style.display = 'none';
-  viewTrivia.style.display = 'none';
-  viewSwTrivia.style.display = 'none';
+  viewCxShipCost.style.display = 'none';
 
   if (hash === '#/orders' || hash === '') {
     currentTab = '#/orders';
@@ -456,15 +457,11 @@ function handleRouteChange() {
       parcelSlaLoaded = true;
       loadParcelSla();
     }
-  } else if (hash === '#/trivia') {
-    viewTrivia.style.display = 'block';
-    if (typeof initTrivia === 'function') {
-      initTrivia();
-    }
-  } else if (hash === '#/sw-trivia') {
-    viewSwTrivia.style.display = 'block';
-    if (typeof initSwTrivia === 'function') {
-      initSwTrivia();
+  } else if (hash === '#/cx-ship-cost') {
+    viewCxShipCost.style.display = 'block';
+    if (!cxShipCostLoaded && typeof loadCxShipCost === 'function') {
+      cxShipCostLoaded = true;
+      loadCxShipCost();
     }
   }
   // Other tabs show blank (coming soon)
