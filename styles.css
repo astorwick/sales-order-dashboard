@@ -147,7 +147,7 @@ h1 {
 }
 
 .summary-card .value {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 600;
 }
 
@@ -763,7 +763,8 @@ td.period-30d {
   letter-spacing: 0.5px;
 }
 
-/* CX Ship Cost: carrier cards with weight/cost stats on the right half */
+/* Parcel SLA & CX Ship Cost: carrier cards with weight/cost stats on the right half */
+
 .summary-card.carrier-card {
   display: flex;
   align-items: center;

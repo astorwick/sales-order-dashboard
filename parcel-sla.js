@@ -126,16 +126,26 @@ async function fetchParcelSla(days) {
   return response.json();
 }
 
+function renderParcelCarrierCard(prefix, carrier, total) {
+  const pct = total > 0 ? ` (${((carrier.count / total) * 100).toFixed(1)}%)` : '';
+  document.getElementById(`parcel-summary-${prefix}`).textContent = carrier.count + pct;
+  document.getElementById(`parcel-summary-${prefix}-avg-weight`).textContent =
+    carrier.avgWeight !== null ? `${carrier.avgWeight} lb` : '-';
+  document.getElementById(`parcel-summary-${prefix}-avg-freight`).textContent =
+    carrier.avgFreight !== null ? formatCurrency(carrier.avgFreight) : '-';
+  document.getElementById(`parcel-summary-${prefix}-total-freight`).textContent =
+    formatCurrency(carrier.totalFreight);
+}
+
 function renderParcelSummary(summary) {
   const total = summary.total || 0;
-  const pct = (n) => total > 0 ? ` (${((n / total) * 100).toFixed(1)}%)` : '';
   document.getElementById('parcel-summary-total').textContent = total;
   document.getElementById('parcel-summary-within-sla').textContent = summary.withinSla;
-  document.getElementById('parcel-summary-past-sla').textContent = summary.pastSla + pct(summary.pastSla);
-  document.getElementById('parcel-summary-ups').textContent = summary.ups + pct(summary.ups);
-  document.getElementById('parcel-summary-usps').textContent = summary.usps + pct(summary.usps);
-  document.getElementById('parcel-summary-fedex').textContent = summary.fedex + pct(summary.fedex);
-  document.getElementById('parcel-summary-amazon').textContent = summary.amazon + pct(summary.amazon);
+  document.getElementById('parcel-summary-past-sla').textContent = summary.pastSla;
+  renderParcelCarrierCard('ups', summary.ups, total);
+  renderParcelCarrierCard('usps', summary.usps, total);
+  renderParcelCarrierCard('fedex', summary.fedex, total);
+  renderParcelCarrierCard('amazon', summary.amazon, total);
 }
 
 function renderParcelRow(order) {

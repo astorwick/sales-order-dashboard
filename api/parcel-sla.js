@@ -71,11 +71,12 @@ module.exports = async (req, res) => {
     console.log(`Parcel SLA: ${shopifyOrders.length} Shopify orders in lookup map`);
 
     if (shippedOrders.length === 0) {
+      const emptyCarrier = { count: 0, avgWeight: null, avgFreight: null, totalFreight: 0 };
       return res.status(200).json({
         success: true,
         timestamp: new Date().toISOString(),
         slaThresholdHours: SLA_HOURS,
-        summary: { total: 0, withinSla: 0, pastSla: 0, ups: 0, usps: 0, fedex: 0, amazon: 0 },
+        summary: { total: 0, withinSla: 0, pastSla: 0, ups: emptyCarrier, usps: emptyCarrier, fedex: emptyCarrier, amazon: emptyCarrier },
         orders: []
       });
     }
@@ -87,10 +88,13 @@ module.exports = async (req, res) => {
     // 3. Combine data
     let withinSla = 0;
     let pastSla = 0;
-    let upsCount = 0;
-    let uspsCount = 0;
-    let fedexCount = 0;
-    let amazonCount = 0;
+
+    const carrierStats = {
+      ups: { count: 0, freightTotal: 0, freightCount: 0, weightTotal: 0, weightCount: 0 },
+      usps: { count: 0, freightTotal: 0, freightCount: 0, weightTotal: 0, weightCount: 0 },
+      fedex: { count: 0, freightTotal: 0, freightCount: 0, weightTotal: 0, weightCount: 0 },
+      amazon: { count: 0, freightTotal: 0, freightCount: 0, weightTotal: 0, weightCount: 0 }
+    };
 
     const orders = [];
 
@@ -98,6 +102,8 @@ module.exports = async (req, res) => {
       // Prefer Shopify's precise creation timestamp; fall back to UNIS OrderedDate
       const createdAt = shopifyMap[unis.poNo] || unis.createdAt;
       const shippedDate = unis.shippedDate;
+      const freightCost = unis.freightCost !== null && unis.freightCost !== undefined ? unis.freightCost : null;
+      const weight = unis.weight !== null && unis.weight !== undefined ? unis.weight : null;
 
       // Calculate SLA (Shopify created -> UNIS shipped)
       let slaHours = null;
@@ -120,12 +126,25 @@ module.exports = async (req, res) => {
         withinSlaFlag = false;
       }
 
-      // Carrier counts
+      // Carrier counts + freight cost / weight aggregation
       const carrierUpper = (unis.carrier || '').toUpperCase();
-      if (carrierUpper.includes('USPS')) uspsCount++;
-      else if (carrierUpper.includes('UPS')) upsCount++;
-      else if (carrierUpper.includes('FEDEX') || carrierUpper.includes('FED EX')) fedexCount++;
-      else if (carrierUpper.includes('AMAZON')) amazonCount++;
+      let stats = null;
+      if (carrierUpper.includes('USPS')) stats = carrierStats.usps;
+      else if (carrierUpper.includes('UPS')) stats = carrierStats.ups;
+      else if (carrierUpper.includes('FEDEX') || carrierUpper.includes('FED EX')) stats = carrierStats.fedex;
+      else if (carrierUpper.includes('AMAZON')) stats = carrierStats.amazon;
+
+      if (stats) {
+        stats.count++;
+        if (freightCost !== null) {
+          stats.freightTotal += freightCost;
+          stats.freightCount++;
+        }
+        if (weight !== null) {
+          stats.weightTotal += weight;
+          stats.weightCount++;
+        }
+      }
 
       orders.push({
         orderNo: unis.unisOrderNo || '',
@@ -138,8 +157,8 @@ module.exports = async (req, res) => {
         withinSla: withinSlaFlag,
         pcs: unis.pcs !== null && unis.pcs !== undefined ? unis.pcs : null,
         state: unis.shipToState || '',
-        weight: unis.weight !== null && unis.weight !== undefined ? unis.weight : null,
-        freightCost: unis.freightCost !== null && unis.freightCost !== undefined ? unis.freightCost : null
+        weight: weight,
+        freightCost: freightCost
       });
     }
 
@@ -150,14 +169,22 @@ module.exports = async (req, res) => {
       return dateB - dateA;
     });
 
+    const round2 = (n) => Math.round(n * 100) / 100;
+    const carrierSummary = (stats) => ({
+      count: stats.count,
+      avgWeight: stats.weightCount > 0 ? round2(stats.weightTotal / stats.weightCount) : null,
+      avgFreight: stats.freightCount > 0 ? round2(stats.freightTotal / stats.freightCount) : null,
+      totalFreight: round2(stats.freightTotal)
+    });
+
     const summary = {
       total: orders.length,
       withinSla,
       pastSla,
-      ups: upsCount,
-      usps: uspsCount,
-      fedex: fedexCount,
-      amazon: amazonCount
+      ups: carrierSummary(carrierStats.ups),
+      usps: carrierSummary(carrierStats.usps),
+      fedex: carrierSummary(carrierStats.fedex),
+      amazon: carrierSummary(carrierStats.amazon)
     };
 
     console.log(`Parcel SLA: ${orders.length} Small Parcel orders (${withinSla} within SLA, ${pastSla} past SLA)`);

@@ -418,29 +418,62 @@
           <div class="label">Total Shipped</div>
           <div class="value" id="parcel-summary-total">-</div>
         </div>
-        <div class="summary-card ok">
-          <div class="label">Within SLA (36h)</div>
-          <div class="value" id="parcel-summary-within-sla">-</div>
+        <div class="summary-card sla-combined">
+          <div class="label">SLA (36h)</div>
+          <div class="sla-combined-values">
+            <div class="sla-stat within">
+              <span class="value" id="parcel-summary-within-sla">-</span>
+              <span class="sub-label">Within</span>
+            </div>
+            <div class="sla-stat past">
+              <span class="value" id="parcel-summary-past-sla">-</span>
+              <span class="sub-label">Past</span>
+            </div>
+          </div>
         </div>
-        <div class="summary-card stuck">
-          <div class="label">Past SLA</div>
-          <div class="value" id="parcel-summary-past-sla">-</div>
+        <div class="summary-card parcel-ups carrier-card">
+          <div class="carrier-card-main">
+            <div class="label">UPS</div>
+            <div class="value" id="parcel-summary-ups">-</div>
+          </div>
+          <div class="carrier-card-stats">
+            <div class="carrier-stat"><span class="carrier-stat-label">Avg Wgt</span><span id="parcel-summary-ups-avg-weight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Avg</span><span id="parcel-summary-ups-avg-freight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Total</span><span id="parcel-summary-ups-total-freight">-</span></div>
+          </div>
         </div>
-        <div class="summary-card parcel-ups">
-          <div class="label">UPS</div>
-          <div class="value" id="parcel-summary-ups">-</div>
+        <div class="summary-card parcel-usps carrier-card">
+          <div class="carrier-card-main">
+            <div class="label">USPS</div>
+            <div class="value" id="parcel-summary-usps">-</div>
+          </div>
+          <div class="carrier-card-stats">
+            <div class="carrier-stat"><span class="carrier-stat-label">Avg Wgt</span><span id="parcel-summary-usps-avg-weight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Avg</span><span id="parcel-summary-usps-avg-freight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Total</span><span id="parcel-summary-usps-total-freight">-</span></div>
+          </div>
         </div>
-        <div class="summary-card parcel-usps">
-          <div class="label">USPS</div>
-          <div class="value" id="parcel-summary-usps">-</div>
+        <div class="summary-card parcel-fedex carrier-card">
+          <div class="carrier-card-main">
+            <div class="label">FedEx</div>
+            <div class="value" id="parcel-summary-fedex">-</div>
+          </div>
+          <div class="carrier-card-stats">
+            <div class="carrier-stat"><span class="carrier-stat-label">Avg Wgt</span><span id="parcel-summary-fedex-avg-weight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Avg</span><span id="parcel-summary-fedex-avg-freight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Total</span><span id="parcel-summary-fedex-total-freight">-</span></div>
+          </div>
         </div>
-        <div class="summary-card parcel-fedex">
-          <div class="label">FedEx</div>
-          <div class="value" id="parcel-summary-fedex">-</div>
-        </div>
-        <div class="summary-card parcel-amazon">
-          <div class="label">AmazonShip</div>
-          <div class="value" id="parcel-summary-amazon">-</div>
+        <div class="summary-card parcel-amazon carrier-card">
+          <div class="carrier-card-main">
+            <div class="label">AmazonShip</div>
+            <div class="value" id="parcel-summary-amazon">-</div>
+          </div>
+          <div class="carrier-card-stats">
+            <div class="carrier-stat"><span class="carrier-stat-label">Avg Wgt</span><span id="parcel-summary-amazon-avg-weight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Avg</span><span id="parcel-summary-amazon-avg-freight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Total</span><span id="parcel-summary-amazon-total-freight">-</span></div>
+          </div>
         </div>
       </div>
 
