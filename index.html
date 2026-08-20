@@ -652,19 +652,6 @@
           <div class="label">Total Shipped</div>
           <div class="value" id="cx-summary-total">-</div>
         </div>
-        <div class="summary-card sla-combined">
-          <div class="label">SLA (36h)</div>
-          <div class="sla-combined-values">
-            <div class="sla-stat within">
-              <span class="value" id="cx-summary-within-sla">-</span>
-              <span class="sub-label">Within</span>
-            </div>
-            <div class="sla-stat past">
-              <span class="value" id="cx-summary-past-sla">-</span>
-              <span class="sub-label">Past</span>
-            </div>
-          </div>
-        </div>
         <div class="summary-card parcel-ups carrier-card">
           <div class="carrier-card-main">
             <div class="label">UPS</div>
@@ -722,14 +709,6 @@
           </select>
         </div>
         <div class="filter-group">
-          <label for="cx-sla-filter">SLA:</label>
-          <select id="cx-sla-filter">
-            <option value="all">All</option>
-            <option value="within-sla">Within SLA</option>
-            <option value="past-sla">Past SLA</option>
-          </select>
-        </div>
-        <div class="filter-group">
           <label for="cx-carrier-filter">Carrier:</label>
           <select id="cx-carrier-filter">
             <option value="all">All Carriers</option>
@@ -742,13 +721,9 @@
         <div class="filter-group">
           <label for="cx-sort-filter">Sort By:</label>
           <select id="cx-sort-filter">
-            <option value="shipped-desc" selected>Shipped (Newest)</option>
-            <option value="shipped-asc">Shipped (Oldest)</option>
-            <option value="created-desc">Created (Newest)</option>
+            <option value="created-desc" selected>Created (Newest)</option>
             <option value="created-asc">Created (Oldest)</option>
             <option value="po-asc">PO # (Ascending)</option>
-            <option value="sla-asc">SLA (Shortest)</option>
-            <option value="sla-desc">SLA (Longest)</option>
           </select>
         </div>
         <div class="filter-group export-group">
@@ -765,10 +740,8 @@
               <th>Order #</th>
               <th>PO #</th>
               <th>Created</th>
-              <th>Shipped</th>
-              <th>SLA (hrs)</th>
-              <th>Tracking ID</th>
               <th>Carrier</th>
+              <th>Service Level</th>
               <th>PCS</th>
               <th>State</th>
               <th>Weight</th>
@@ -777,7 +750,7 @@
           </thead>
           <tbody id="cx-ship-cost-list">
             <tr>
-              <td colspan="11" class="loading">
+              <td colspan="9" class="loading">
                 <p>Navigate to this tab to load CX ship cost data.</p>
               </td>
             </tr>

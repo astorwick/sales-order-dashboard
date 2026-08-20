@@ -1,13 +1,12 @@
 // CX Ship Cost Tab - Frontend JavaScript
-// Same as Parcel SLA, but restricted to Shopify orders with source_name = shopify_draft_order
+// Mirrors Parcel Cost, but restricted server-side to Shopify orders with source_name:shopify_draft_order
 
 const CX_API = '/api/cx-ship-cost';
 
 let cxShipCostData = [];
 let cxDaysFilter = 7;
-let cxStatusFilter = 'all';
 let cxCarrierFilter = 'all';
-let cxSortOption = 'shipped-desc';
+let cxSortOption = 'created-desc';
 
 function formatCxDate(dateString) {
   if (!dateString) return '-';
@@ -30,16 +29,6 @@ function escapeCxHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
-function formatCxSlaHours(hours) {
-  if (hours === null || hours === undefined) return '-';
-  if (hours < 1) {
-    return `${Math.round(hours * 60)}m`;
-  }
-  const h = Math.floor(hours);
-  const m = Math.round((hours - h) * 60);
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
-}
-
 function matchesCxCarrierFilter(carrier, filter) {
   const c = (carrier || '').toUpperCase();
   switch (filter) {
@@ -53,10 +42,7 @@ function matchesCxCarrierFilter(carrier, filter) {
 
 function filterCxOrders(orders) {
   return orders.filter(order => {
-    if (cxStatusFilter === 'within-sla' && order.withinSla !== true) return false;
-    if (cxStatusFilter === 'past-sla' && order.withinSla !== false) return false;
     if (cxCarrierFilter !== 'all' && !matchesCxCarrierFilter(order.carrier, cxCarrierFilter)) return false;
-
     return true;
   });
 }
@@ -71,24 +57,12 @@ function sortCxOrders(orders) {
         return aNum - bNum;
       });
       break;
-    case 'created-desc':
-      sorted.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-      break;
     case 'created-asc':
       sorted.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
       break;
-    case 'shipped-asc':
-      sorted.sort((a, b) => new Date(a.shippedDate || 0) - new Date(b.shippedDate || 0));
-      break;
-    case 'sla-asc':
-      sorted.sort((a, b) => (a.slaHours ?? Infinity) - (b.slaHours ?? Infinity));
-      break;
-    case 'sla-desc':
-      sorted.sort((a, b) => (b.slaHours ?? -Infinity) - (a.slaHours ?? -Infinity));
-      break;
-    case 'shipped-desc':
+    case 'created-desc':
     default:
-      sorted.sort((a, b) => new Date(b.shippedDate || 0) - new Date(a.shippedDate || 0));
+      sorted.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
   }
   return sorted;
 }
@@ -101,15 +75,13 @@ function exportCxShipCostCSV() {
   const filtered = sortCxOrders(filterCxOrders(cxShipCostData));
   if (!filtered.length) return;
 
-  const headers = ['Order #', 'PO #', 'Created', 'Shipped', 'SLA (hrs)', 'Tracking ID', 'Carrier', 'PCS', 'State', 'Weight', 'Freight Cost'];
+  const headers = ['Order #', 'PO #', 'Created', 'Carrier', 'Service Level', 'PCS', 'State', 'Weight', 'Freight Cost'];
   const rows = filtered.map(order => [
     csvEscape(order.orderNo),
     csvEscape(order.poNo),
     csvEscape(order.createdAt ? new Date(order.createdAt).toLocaleString() : ''),
-    csvEscape(order.shippedDate ? new Date(order.shippedDate).toLocaleString() : ''),
-    csvEscape(formatCxSlaHours(order.slaHours)),
-    csvEscape(order.trackingNumber || ''),
     csvEscape(order.carrier || ''),
+    csvEscape(order.serviceLevel || ''),
     csvEscape(order.pcs !== null && order.pcs !== undefined ? order.pcs : ''),
     csvEscape(order.state || ''),
     csvEscape(order.weight !== null && order.weight !== undefined ? order.weight : ''),
@@ -141,8 +113,6 @@ function renderCxCarrierCard(prefix, carrier, total) {
 function renderCxSummary(summary) {
   const total = summary.total || 0;
   document.getElementById('cx-summary-total').textContent = total;
-  document.getElementById('cx-summary-within-sla').textContent = summary.withinSla;
-  document.getElementById('cx-summary-past-sla').textContent = summary.pastSla;
   renderCxCarrierCard('ups', summary.ups, total);
   renderCxCarrierCard('usps', summary.usps, total);
   renderCxCarrierCard('fedex', summary.fedex, total);
@@ -150,18 +120,13 @@ function renderCxSummary(summary) {
 }
 
 function renderCxRow(order) {
-  const slaClass = order.withinSla === true ? 'within-sla' : order.withinSla === false ? 'past-sla' : '';
-  const slaDisplay = formatCxSlaHours(order.slaHours);
-
   return `
     <tr>
       <td><span class="order-number">${escapeCxHtml(order.orderNo)}</span></td>
       <td>${escapeCxHtml(order.poNo)}</td>
       <td>${formatCxDate(order.createdAt)}</td>
-      <td>${formatCxDate(order.shippedDate)}</td>
-      <td><span class="sla-time ${slaClass}">${slaDisplay}</span></td>
-      <td class="tracking-cell">${escapeCxHtml(order.trackingNumber || '-')}</td>
       <td>${escapeCxHtml(order.carrier)}</td>
+      <td>${escapeCxHtml(order.serviceLevel || '-')}</td>
       <td>${order.pcs !== null && order.pcs !== undefined ? order.pcs : '-'}</td>
       <td>${escapeCxHtml(order.state || '-')}</td>
       <td>${order.weight !== null && order.weight !== undefined ? `${order.weight} lb` : '-'}</td>
@@ -179,7 +144,7 @@ function renderCxOrders(orders) {
   if (orders.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="11" class="empty-state">
+        <td colspan="9" class="empty-state">
           No CX draft-order shipments found for this period
         </td>
       </tr>
@@ -193,7 +158,7 @@ function renderCxOrders(orders) {
 function renderCxLoading() {
   document.getElementById('cx-ship-cost-list').innerHTML = `
     <tr>
-      <td colspan="11" class="loading">
+      <td colspan="9" class="loading">
         <div class="loading-spinner"></div>
         <p>Loading CX ship cost data...</p>
       </td>
@@ -204,7 +169,7 @@ function renderCxLoading() {
 function renderCxError(message) {
   document.getElementById('cx-ship-cost-list').innerHTML = `
     <tr>
-      <td colspan="11" class="error">
+      <td colspan="9" class="error">
         <p>Error: ${message}</p>
         <button onclick="loadCxShipCost()" class="refresh-btn" style="margin-top: 12px;">Retry</button>
       </td>
@@ -237,12 +202,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (daysSelect) daysSelect.addEventListener('change', e => {
     cxDaysFilter = parseInt(e.target.value);
     loadCxShipCost();
-  });
-
-  const slaSelect = document.getElementById('cx-sla-filter');
-  if (slaSelect) slaSelect.addEventListener('change', e => {
-    cxStatusFilter = e.target.value;
-    applyCxFiltersAndRender();
   });
 
   const carrierSelect = document.getElementById('cx-carrier-filter');

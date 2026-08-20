@@ -1,39 +1,7 @@
 const ShopifyClient = require('../lib/shopify');
 const ThreePLClient = require('../lib/threepl');
 
-const SLA_HOURS = 36;
 const DRAFT_ORDER_SOURCE_NAME = 'shopify_draft_order';
-
-// Count elapsed business hours between two dates, skipping Sat/Sun in Pacific Time.
-// Uses UTC-8 as a fixed PT approximation — DST error is ≤1h on 2 days/year, immaterial vs. 36h SLA.
-function calcBusinessHours(start, end) {
-  if (!(start instanceof Date)) start = new Date(start);
-  if (!(end instanceof Date)) end = new Date(end);
-  if (end <= start) return 0;
-
-  const DAY_MS = 86400000;
-  const PT_OFFSET_MS = 8 * 3600000; // UTC-8
-
-  // Shift into PT space so day boundaries align with PT midnight
-  const s = start.getTime() - PT_OFFSET_MS;
-  const e = end.getTime() - PT_OFFSET_MS;
-
-  // In PT space, day 0 starts at 1970-01-01 00:00 PT = 1970-01-01 08:00 UTC (a Thursday).
-  // dow: (dayNum + 4) % 7 gives 0=Sun … 6=Sat.
-  const startDay = Math.floor(s / DAY_MS);
-  const endDay   = Math.floor(e / DAY_MS);
-
-  let totalMs = 0;
-  for (let d = startDay; d <= endDay; d++) {
-    const dow = ((d % 7) + 7 + 4) % 7;
-    if (dow === 0 || dow === 6) continue; // skip weekends
-    const overlapStart = Math.max(s, d * DAY_MS);
-    const overlapEnd   = Math.min(e, (d + 1) * DAY_MS);
-    if (overlapEnd > overlapStart) totalMs += overlapEnd - overlapStart;
-  }
-
-  return totalMs / 3600000;
-}
 
 const ALLOWED_ORIGINS = [
   'https://sales-order-dashboard-pi.vercel.app',
@@ -76,21 +44,17 @@ module.exports = async (req, res) => {
       return res.status(200).json({
         success: true,
         timestamp: new Date().toISOString(),
-        slaThresholdHours: SLA_HOURS,
-        summary: { total: 0, withinSla: 0, pastSla: 0, ups: emptyCarrier, usps: emptyCarrier, fedex: emptyCarrier, amazon: emptyCarrier },
+        summary: { total: 0, ups: emptyCarrier, usps: emptyCarrier, fedex: emptyCarrier, amazon: emptyCarrier },
         orders: []
       });
     }
 
-    // 2. Build Shopify creation-date lookup map — only draft orders are present here,
-    //    so any UNIS order not found in this map is not a draft order and gets excluded below.
+    // 2. Build Shopify draft-order creation-date / service-level lookup map — only draft orders are present
+    //    here, so any UNIS order not found in this map is not a draft order and gets excluded below.
     const shopifyDraftMap = {};
-    shopifyDraftOrders.forEach(o => { shopifyDraftMap[o.name] = o.createdAt; });
+    shopifyDraftOrders.forEach(o => { shopifyDraftMap[o.name] = o; });
 
     // 3. Combine data, keeping only orders that originated as Shopify draft orders
-    let withinSla = 0;
-    let pastSla = 0;
-
     const carrierStats = {
       ups: { count: 0, freightTotal: 0, freightCount: 0, weightTotal: 0, weightCount: 0 },
       usps: { count: 0, freightTotal: 0, freightCount: 0, weightTotal: 0, weightCount: 0 },
@@ -101,20 +65,11 @@ module.exports = async (req, res) => {
     const orders = [];
 
     for (const unis of shippedOrders) {
-      const createdAt = shopifyDraftMap[unis.poNo];
-      if (!createdAt) continue; // Not a Shopify draft order — exclude
+      const shopifyOrder = shopifyDraftMap[unis.poNo];
+      if (!shopifyOrder) continue; // Not a Shopify draft order — exclude
 
-      const shippedDate = unis.shippedDate;
       const freightCost = unis.freightCost !== null && unis.freightCost !== undefined ? unis.freightCost : null;
       const weight = unis.weight !== null && unis.weight !== undefined ? unis.weight : null;
-
-      // Calculate SLA (Shopify created -> UNIS shipped)
-      const created = new Date(createdAt);
-      const shipped = new Date(shippedDate);
-      const slaHours = calcBusinessHours(created, shipped);
-      const withinSlaFlag = slaHours <= SLA_HOURS;
-      if (withinSlaFlag) withinSla++;
-      else pastSla++;
 
       // Carrier counts + freight cost / weight aggregation
       const carrierUpper = (unis.carrier || '').toUpperCase();
@@ -139,12 +94,9 @@ module.exports = async (req, res) => {
       orders.push({
         orderNo: unis.unisOrderNo || '',
         poNo: unis.poNo || '',
-        createdAt: createdAt,
-        shippedDate: shippedDate,
-        trackingNumber: unis.trackingNumber || null,
+        createdAt: shopifyOrder.createdAt,
         carrier: unis.carrier || '',
-        slaHours: Math.round(slaHours * 10) / 10,
-        withinSla: withinSlaFlag,
+        serviceLevel: shopifyOrder.serviceLevel,
         pcs: unis.pcs !== null && unis.pcs !== undefined ? unis.pcs : null,
         state: unis.shipToState || '',
         weight: weight,
@@ -152,15 +104,15 @@ module.exports = async (req, res) => {
       });
     }
 
-    // Sort by shipped date descending (newest first)
+    // Sort by created date descending (newest first)
     orders.sort((a, b) => {
-      const dateA = a.shippedDate ? new Date(a.shippedDate) : new Date(0);
-      const dateB = b.shippedDate ? new Date(b.shippedDate) : new Date(0);
+      const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0);
+      const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0);
       return dateB - dateA;
     });
 
     const round2 = (n) => Math.round(n * 100) / 100;
-    const freightSummary = (stats) => ({
+    const carrierSummary = (stats) => ({
       count: stats.count,
       avgWeight: stats.weightCount > 0 ? round2(stats.weightTotal / stats.weightCount) : null,
       avgFreight: stats.freightCount > 0 ? round2(stats.freightTotal / stats.freightCount) : null,
@@ -169,20 +121,17 @@ module.exports = async (req, res) => {
 
     const summary = {
       total: orders.length,
-      withinSla,
-      pastSla,
-      ups: freightSummary(carrierStats.ups),
-      usps: freightSummary(carrierStats.usps),
-      fedex: freightSummary(carrierStats.fedex),
-      amazon: freightSummary(carrierStats.amazon)
+      ups: carrierSummary(carrierStats.ups),
+      usps: carrierSummary(carrierStats.usps),
+      fedex: carrierSummary(carrierStats.fedex),
+      amazon: carrierSummary(carrierStats.amazon)
     };
 
-    console.log(`CX Ship Cost: ${orders.length} draft-order shipments (${withinSla} within SLA, ${pastSla} past SLA)`);
+    console.log(`CX Ship Cost: ${orders.length} draft-order shipments`);
 
     return res.status(200).json({
       success: true,
       timestamp: new Date().toISOString(),
-      slaThresholdHours: SLA_HOURS,
       summary,
       orders
     });
