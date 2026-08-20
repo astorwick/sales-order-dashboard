@@ -5,6 +5,7 @@ const PARCEL_COST_API = '/api/parcel-cost';
 
 let parcelCostData = [];
 let parcelCostDaysFilter = 7;
+let parcelCostCustomRange = null; // {startDate, endDate} when Custom Range is active, else null
 let parcelCostCarrierFilter = 'all';
 let parcelCostSortOption = 'created-desc';
 
@@ -93,8 +94,11 @@ function exportParcelCostCSV() {
   downloadCSV(`parcel-cost-${date}.csv`, csv);
 }
 
-async function fetchParcelCost(days) {
-  const response = await fetch(`${PARCEL_COST_API}?days=${days}`);
+async function fetchParcelCost(range) {
+  const query = range.startDate
+    ? `startDate=${range.startDate}&endDate=${range.endDate}`
+    : `days=${range.days}`;
+  const response = await fetch(`${PARCEL_COST_API}?${query}`);
   if (!response.ok) throw new Error('Failed to fetch parcel cost data');
   return response.json();
 }
@@ -182,7 +186,8 @@ async function loadParcelCost() {
   const startTime = Date.now();
 
   try {
-    const data = await fetchParcelCost(parcelCostDaysFilter);
+    const range = parcelCostCustomRange || { days: parcelCostDaysFilter };
+    const data = await fetchParcelCost(range);
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
     parcelCostData = data.orders;
     renderParcelCostSummary(data.summary);
@@ -199,8 +204,31 @@ async function loadParcelCost() {
 
 document.addEventListener('DOMContentLoaded', () => {
   const daysSelect = document.getElementById('parcel-cost-days-filter');
+  const customRangeGroup = document.getElementById('parcel-cost-custom-range');
   if (daysSelect) daysSelect.addEventListener('change', e => {
+    if (e.target.value === 'custom') {
+      if (customRangeGroup) customRangeGroup.style.display = 'flex';
+      return;
+    }
+    if (customRangeGroup) customRangeGroup.style.display = 'none';
+    parcelCostCustomRange = null;
     parcelCostDaysFilter = parseInt(e.target.value);
+    loadParcelCost();
+  });
+
+  const applyCustomRangeBtn = document.getElementById('parcel-cost-apply-custom-range');
+  if (applyCustomRangeBtn) applyCustomRangeBtn.addEventListener('click', () => {
+    const startDate = document.getElementById('parcel-cost-start-date').value;
+    const endDate = document.getElementById('parcel-cost-end-date').value;
+    if (!startDate || !endDate) {
+      alert('Please select both a start and end date.');
+      return;
+    }
+    if (endDate < startDate) {
+      alert('End date must be on or after the start date.');
+      return;
+    }
+    parcelCostCustomRange = { startDate, endDate };
     loadParcelCost();
   });
 

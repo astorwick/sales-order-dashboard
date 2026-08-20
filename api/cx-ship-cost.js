@@ -1,4 +1,5 @@
 const db = require('../lib/db');
+const { buildShippedDateFilter } = require('../lib/date-range');
 
 const ALLOWED_ORIGINS = [
   'https://sales-order-dashboard-pi.vercel.app',
@@ -22,15 +23,15 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const daysBack = Math.min(parseInt(req.query.days) || 7, 90);
+    const { whereClause, params } = buildShippedDateFilter(req.query);
 
     const { rows } = await db.query(`
       SELECT po_no, unis_order_no, order_created_at, carrier, service_level, pcs, ship_to_state, weight, freight_cost
       FROM parcel_shipments
-      WHERE shipped_date >= now() - ($1 || ' days')::interval
+      WHERE ${whereClause}
         AND is_draft_order = true
       ORDER BY order_created_at DESC NULLS LAST
-    `, [daysBack]);
+    `, params);
 
     console.log(`CX Ship Cost: ${rows.length} draft-order shipments from Postgres`);
 

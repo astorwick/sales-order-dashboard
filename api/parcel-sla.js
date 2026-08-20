@@ -1,4 +1,5 @@
 const db = require('../lib/db');
+const { buildShippedDateFilter } = require('../lib/date-range');
 
 const SLA_HOURS = 36;
 
@@ -55,14 +56,14 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const daysBack = Math.min(parseInt(req.query.days) || 7, 90);
+    const { whereClause, params } = buildShippedDateFilter(req.query);
 
     const { rows } = await db.query(`
       SELECT po_no, unis_order_no, order_created_at, shipped_date, tracking_number, carrier
       FROM parcel_shipments
-      WHERE shipped_date >= now() - ($1 || ' days')::interval
+      WHERE ${whereClause}
       ORDER BY shipped_date DESC
-    `, [daysBack]);
+    `, params);
 
     console.log(`Parcel SLA: ${rows.length} shipped orders from Postgres`);
 

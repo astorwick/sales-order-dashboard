@@ -4,6 +4,7 @@ const PARCEL_API = '/api/parcel-sla';
 
 let parcelSlaData = [];
 let parcelDaysFilter = 7;
+let parcelCustomRange = null; // {startDate, endDate} when Custom Range is active, else null
 let parcelStatusFilter = 'all';
 let parcelCarrierFilter = 'all';
 let parcelSortOption = 'shipped-desc';
@@ -116,8 +117,11 @@ function exportParcelSlaCSV() {
   downloadCSV(`parcel-sla-${date}.csv`, csv);
 }
 
-async function fetchParcelSla(days) {
-  const response = await fetch(`${PARCEL_API}?days=${days}`);
+async function fetchParcelSla(range) {
+  const query = range.startDate
+    ? `startDate=${range.startDate}&endDate=${range.endDate}`
+    : `days=${range.days}`;
+  const response = await fetch(`${PARCEL_API}?${query}`);
   if (!response.ok) throw new Error('Failed to fetch parcel SLA data');
   return response.json();
 }
@@ -203,7 +207,8 @@ async function loadParcelSla() {
   const startTime = Date.now();
 
   try {
-    const data = await fetchParcelSla(parcelDaysFilter);
+    const range = parcelCustomRange || { days: parcelDaysFilter };
+    const data = await fetchParcelSla(range);
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
     parcelSlaData = data.orders;
     renderParcelSummary(data.summary);
@@ -220,8 +225,31 @@ async function loadParcelSla() {
 
 document.addEventListener('DOMContentLoaded', () => {
   const daysSelect = document.getElementById('parcel-days-filter');
+  const customRangeGroup = document.getElementById('parcel-custom-range');
   if (daysSelect) daysSelect.addEventListener('change', e => {
+    if (e.target.value === 'custom') {
+      if (customRangeGroup) customRangeGroup.style.display = 'flex';
+      return;
+    }
+    if (customRangeGroup) customRangeGroup.style.display = 'none';
+    parcelCustomRange = null;
     parcelDaysFilter = parseInt(e.target.value);
+    loadParcelSla();
+  });
+
+  const applyCustomRangeBtn = document.getElementById('parcel-apply-custom-range');
+  if (applyCustomRangeBtn) applyCustomRangeBtn.addEventListener('click', () => {
+    const startDate = document.getElementById('parcel-start-date').value;
+    const endDate = document.getElementById('parcel-end-date').value;
+    if (!startDate || !endDate) {
+      alert('Please select both a start and end date.');
+      return;
+    }
+    if (endDate < startDate) {
+      alert('End date must be on or after the start date.');
+      return;
+    }
+    parcelCustomRange = { startDate, endDate };
     loadParcelSla();
   });
 

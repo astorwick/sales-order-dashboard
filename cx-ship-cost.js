@@ -5,6 +5,7 @@ const CX_API = '/api/cx-ship-cost';
 
 let cxShipCostData = [];
 let cxDaysFilter = 7;
+let cxCustomRange = null; // {startDate, endDate} when Custom Range is active, else null
 let cxCarrierFilter = 'all';
 let cxSortOption = 'created-desc';
 
@@ -93,8 +94,11 @@ function exportCxShipCostCSV() {
   downloadCSV(`cx-ship-cost-${date}.csv`, csv);
 }
 
-async function fetchCxShipCost(days) {
-  const response = await fetch(`${CX_API}?days=${days}`);
+async function fetchCxShipCost(range) {
+  const query = range.startDate
+    ? `startDate=${range.startDate}&endDate=${range.endDate}`
+    : `days=${range.days}`;
+  const response = await fetch(`${CX_API}?${query}`);
   if (!response.ok) throw new Error('Failed to fetch CX ship cost data');
   return response.json();
 }
@@ -182,7 +186,8 @@ async function loadCxShipCost() {
   const startTime = Date.now();
 
   try {
-    const data = await fetchCxShipCost(cxDaysFilter);
+    const range = cxCustomRange || { days: cxDaysFilter };
+    const data = await fetchCxShipCost(range);
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
     cxShipCostData = data.orders;
     renderCxSummary(data.summary);
@@ -199,8 +204,31 @@ async function loadCxShipCost() {
 
 document.addEventListener('DOMContentLoaded', () => {
   const daysSelect = document.getElementById('cx-days-filter');
+  const customRangeGroup = document.getElementById('cx-custom-range');
   if (daysSelect) daysSelect.addEventListener('change', e => {
+    if (e.target.value === 'custom') {
+      if (customRangeGroup) customRangeGroup.style.display = 'flex';
+      return;
+    }
+    if (customRangeGroup) customRangeGroup.style.display = 'none';
+    cxCustomRange = null;
     cxDaysFilter = parseInt(e.target.value);
+    loadCxShipCost();
+  });
+
+  const applyCustomRangeBtn = document.getElementById('cx-apply-custom-range');
+  if (applyCustomRangeBtn) applyCustomRangeBtn.addEventListener('click', () => {
+    const startDate = document.getElementById('cx-start-date').value;
+    const endDate = document.getElementById('cx-end-date').value;
+    if (!startDate || !endDate) {
+      alert('Please select both a start and end date.');
+      return;
+    }
+    if (endDate < startDate) {
+      alert('End date must be on or after the start date.');
+      return;
+    }
+    cxCustomRange = { startDate, endDate };
     loadCxShipCost();
   });
 
