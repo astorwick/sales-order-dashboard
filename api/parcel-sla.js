@@ -1,5 +1,4 @@
-const ShopifyClient = require('../lib/shopify');
-const ThreePLClient = require('../lib/threepl');
+const db = require('../lib/db');
 
 const SLA_HOURS = 36;
 
@@ -58,34 +57,15 @@ module.exports = async (req, res) => {
   try {
     const daysBack = Math.min(parseInt(req.query.days) || 7, 90);
 
-    // 1. Fetch UNIS shipped orders and Shopify creation-date map in parallel —
-    //    the two sources are independent so there's no reason to wait on one before starting the other.
-    const threePL = new ThreePLClient();
-    const shopify = new ShopifyClient();
-    const [shippedOrders, shopifyOrders] = await Promise.all([
-      threePL.getRecentShippedOrders(daysBack),
-      shopify.getFulfilledOrders(daysBack)
-    ]);
+    const { rows } = await db.query(`
+      SELECT po_no, unis_order_no, order_created_at, shipped_date, tracking_number, carrier
+      FROM parcel_shipments
+      WHERE shipped_date >= now() - ($1 || ' days')::interval
+      ORDER BY shipped_date DESC
+    `, [daysBack]);
 
-    console.log(`Parcel SLA: ${shippedOrders.length} shipped orders from UNIS DC`);
-    console.log(`Parcel SLA: ${shopifyOrders.length} Shopify orders in lookup map`);
+    console.log(`Parcel SLA: ${rows.length} shipped orders from Postgres`);
 
-    if (shippedOrders.length === 0) {
-      const emptyCarrier = { count: 0 };
-      return res.status(200).json({
-        success: true,
-        timestamp: new Date().toISOString(),
-        slaThresholdHours: SLA_HOURS,
-        summary: { total: 0, withinSla: 0, pastSla: 0, ups: emptyCarrier, usps: emptyCarrier, fedex: emptyCarrier, amazon: emptyCarrier },
-        orders: []
-      });
-    }
-
-    // 2. Build Shopify creation-date lookup map.
-    const shopifyMap = {};
-    shopifyOrders.forEach(o => { shopifyMap[o.name] = o.createdAt; });
-
-    // 3. Combine data
     let withinSla = 0;
     let pastSla = 0;
 
@@ -96,12 +76,9 @@ module.exports = async (req, res) => {
       amazon: { count: 0 }
     };
 
-    const orders = [];
-
-    for (const unis of shippedOrders) {
-      // Prefer Shopify's precise creation timestamp; fall back to UNIS OrderedDate
-      const createdAt = shopifyMap[unis.poNo] || unis.createdAt;
-      const shippedDate = unis.shippedDate;
+    const orders = rows.map(row => {
+      const createdAt = row.order_created_at ? row.order_created_at.toISOString() : null;
+      const shippedDate = row.shipped_date ? row.shipped_date.toISOString() : null;
 
       // Calculate SLA (Shopify created -> UNIS shipped)
       let slaHours = null;
@@ -125,7 +102,7 @@ module.exports = async (req, res) => {
       }
 
       // Carrier counts
-      const carrierUpper = (unis.carrier || '').toUpperCase();
+      const carrierUpper = (row.carrier || '').toUpperCase();
       let stats = null;
       if (carrierUpper.includes('USPS')) stats = carrierStats.usps;
       else if (carrierUpper.includes('UPS')) stats = carrierStats.ups;
@@ -134,23 +111,16 @@ module.exports = async (req, res) => {
 
       if (stats) stats.count++;
 
-      orders.push({
-        orderNo: unis.unisOrderNo || '',
-        poNo: unis.poNo || '',
+      return {
+        orderNo: row.unis_order_no || '',
+        poNo: row.po_no || '',
         createdAt: createdAt,
         shippedDate: shippedDate,
-        trackingNumber: unis.trackingNumber || null,
-        carrier: unis.carrier || '',
+        trackingNumber: row.tracking_number || null,
+        carrier: row.carrier || '',
         slaHours: slaHours !== null ? Math.round(slaHours * 10) / 10 : null,
         withinSla: withinSlaFlag
-      });
-    }
-
-    // Sort by shipped date descending (newest first)
-    orders.sort((a, b) => {
-      const dateA = a.shippedDate ? new Date(a.shippedDate) : new Date(0);
-      const dateB = b.shippedDate ? new Date(b.shippedDate) : new Date(0);
-      return dateB - dateA;
+      };
     });
 
     const carrierSummary = (stats) => ({

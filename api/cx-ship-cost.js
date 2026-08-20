@@ -1,7 +1,4 @@
-const ShopifyClient = require('../lib/shopify');
-const ThreePLClient = require('../lib/threepl');
-
-const DRAFT_ORDER_SOURCE_NAME = 'shopify_draft_order';
+const db = require('../lib/db');
 
 const ALLOWED_ORIGINS = [
   'https://sales-order-dashboard-pi.vercel.app',
@@ -27,34 +24,16 @@ module.exports = async (req, res) => {
   try {
     const daysBack = Math.min(parseInt(req.query.days) || 7, 90);
 
-    // 1. Fetch UNIS shipped orders and Shopify draft orders in parallel —
-    //    the two sources are independent so there's no reason to wait on one before starting the other.
-    const threePL = new ThreePLClient();
-    const shopify = new ShopifyClient();
-    const [shippedOrders, shopifyDraftOrders] = await Promise.all([
-      threePL.getRecentShippedOrders(daysBack),
-      shopify.getFulfilledOrders(daysBack, { sourceName: DRAFT_ORDER_SOURCE_NAME })
-    ]);
+    const { rows } = await db.query(`
+      SELECT po_no, unis_order_no, order_created_at, carrier, service_level, pcs, ship_to_state, weight, freight_cost
+      FROM parcel_shipments
+      WHERE shipped_date >= now() - ($1 || ' days')::interval
+        AND is_draft_order = true
+      ORDER BY order_created_at DESC NULLS LAST
+    `, [daysBack]);
 
-    console.log(`CX Ship Cost: ${shippedOrders.length} shipped orders from UNIS DC`);
-    console.log(`CX Ship Cost: ${shopifyDraftOrders.length} Shopify draft orders (source_name:${DRAFT_ORDER_SOURCE_NAME})`);
+    console.log(`CX Ship Cost: ${rows.length} draft-order shipments from Postgres`);
 
-    if (shippedOrders.length === 0 || shopifyDraftOrders.length === 0) {
-      const emptyCarrier = { count: 0, avgWeight: null, avgFreight: null, totalFreight: 0 };
-      return res.status(200).json({
-        success: true,
-        timestamp: new Date().toISOString(),
-        summary: { total: 0, ups: emptyCarrier, usps: emptyCarrier, fedex: emptyCarrier, amazon: emptyCarrier },
-        orders: []
-      });
-    }
-
-    // 2. Build Shopify draft-order creation-date / service-level lookup map — only draft orders are present
-    //    here, so any UNIS order not found in this map is not a draft order and gets excluded below.
-    const shopifyDraftMap = {};
-    shopifyDraftOrders.forEach(o => { shopifyDraftMap[o.name] = o; });
-
-    // 3. Combine data, keeping only orders that originated as Shopify draft orders
     const carrierStats = {
       ups: { count: 0, freightTotal: 0, freightCount: 0, weightTotal: 0, weightCount: 0 },
       usps: { count: 0, freightTotal: 0, freightCount: 0, weightTotal: 0, weightCount: 0 },
@@ -62,17 +41,11 @@ module.exports = async (req, res) => {
       amazon: { count: 0, freightTotal: 0, freightCount: 0, weightTotal: 0, weightCount: 0 }
     };
 
-    const orders = [];
+    const orders = rows.map(row => {
+      const freightCost = row.freight_cost !== null ? Number(row.freight_cost) : null;
+      const weight = row.weight !== null ? Number(row.weight) : null;
 
-    for (const unis of shippedOrders) {
-      const shopifyOrder = shopifyDraftMap[unis.poNo];
-      if (!shopifyOrder) continue; // Not a Shopify draft order — exclude
-
-      const freightCost = unis.freightCost !== null && unis.freightCost !== undefined ? unis.freightCost : null;
-      const weight = unis.weight !== null && unis.weight !== undefined ? unis.weight : null;
-
-      // Carrier counts + freight cost / weight aggregation
-      const carrierUpper = (unis.carrier || '').toUpperCase();
+      const carrierUpper = (row.carrier || '').toUpperCase();
       let stats = null;
       if (carrierUpper.includes('USPS')) stats = carrierStats.usps;
       else if (carrierUpper.includes('UPS')) stats = carrierStats.ups;
@@ -91,24 +64,17 @@ module.exports = async (req, res) => {
         }
       }
 
-      orders.push({
-        orderNo: unis.unisOrderNo || '',
-        poNo: unis.poNo || '',
-        createdAt: shopifyOrder.createdAt,
-        carrier: unis.carrier || '',
-        serviceLevel: shopifyOrder.serviceLevel,
-        pcs: unis.pcs !== null && unis.pcs !== undefined ? unis.pcs : null,
-        state: unis.shipToState || '',
+      return {
+        orderNo: row.unis_order_no || '',
+        poNo: row.po_no || '',
+        createdAt: row.order_created_at ? row.order_created_at.toISOString() : null,
+        carrier: row.carrier || '',
+        serviceLevel: row.service_level,
+        pcs: row.pcs !== null && row.pcs !== undefined ? row.pcs : null,
+        state: row.ship_to_state || '',
         weight: weight,
         freightCost: freightCost
-      });
-    }
-
-    // Sort by created date descending (newest first)
-    orders.sort((a, b) => {
-      const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0);
-      const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0);
-      return dateB - dateA;
+      };
     });
 
     const round2 = (n) => Math.round(n * 100) / 100;
