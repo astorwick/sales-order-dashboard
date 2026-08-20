@@ -100,7 +100,7 @@ function exportParcelSlaCSV() {
   const filtered = sortParcelOrders(filterParcelOrders(parcelSlaData));
   if (!filtered.length) return;
 
-  const headers = ['Order #', 'PO #', 'Created', 'Shipped', 'SLA (hrs)', 'Tracking ID', 'Carrier', 'PCS', 'State', 'Weight', 'Freight Cost'];
+  const headers = ['Order #', 'PO #', 'Created', 'Shipped', 'SLA (hrs)', 'Tracking ID', 'Carrier'];
   const rows = filtered.map(order => [
     csvEscape(order.orderNo),
     csvEscape(order.poNo),
@@ -108,11 +108,7 @@ function exportParcelSlaCSV() {
     csvEscape(order.shippedDate ? new Date(order.shippedDate).toLocaleString() : ''),
     csvEscape(formatSlaHours(order.slaHours)),
     csvEscape(order.trackingNumber || ''),
-    csvEscape(order.carrier || ''),
-    csvEscape(order.pcs !== null && order.pcs !== undefined ? order.pcs : ''),
-    csvEscape(order.state || ''),
-    csvEscape(order.weight !== null && order.weight !== undefined ? order.weight : ''),
-    csvEscape(order.freightCost !== null && order.freightCost !== undefined ? order.freightCost : '')
+    csvEscape(order.carrier || '')
   ].join(','));
 
   const csv = [headers.join(','), ...rows].join('\n');
@@ -129,18 +125,13 @@ async function fetchParcelSla(days) {
 function renderParcelCarrierCard(prefix, carrier, total) {
   const pct = total > 0 ? ` (${((carrier.count / total) * 100).toFixed(1)}%)` : '';
   document.getElementById(`parcel-summary-${prefix}`).textContent = carrier.count + pct;
-  document.getElementById(`parcel-summary-${prefix}-avg-weight`).textContent =
-    carrier.avgWeight !== null ? `${carrier.avgWeight} lb` : '-';
-  document.getElementById(`parcel-summary-${prefix}-avg-freight`).textContent =
-    carrier.avgFreight !== null ? formatCurrency(carrier.avgFreight) : '-';
-  document.getElementById(`parcel-summary-${prefix}-total-freight`).textContent =
-    formatCurrency(carrier.totalFreight);
 }
 
 function renderParcelSummary(summary) {
   const total = summary.total || 0;
   document.getElementById('parcel-summary-total').textContent = total;
-  document.getElementById('parcel-summary-within-sla').textContent = summary.withinSla;
+  const withinPct = total > 0 ? ` (${((summary.withinSla / total) * 100).toFixed(1)}%)` : '';
+  document.getElementById('parcel-summary-within-sla').textContent = summary.withinSla + withinPct;
   document.getElementById('parcel-summary-past-sla').textContent = summary.pastSla;
   renderParcelCarrierCard('ups', summary.ups, total);
   renderParcelCarrierCard('usps', summary.usps, total);
@@ -161,10 +152,6 @@ function renderParcelRow(order) {
       <td><span class="sla-time ${slaClass}">${slaDisplay}</span></td>
       <td class="tracking-cell">${escapeParcelHtml(order.trackingNumber || '-')}</td>
       <td>${escapeParcelHtml(order.carrier)}</td>
-      <td>${order.pcs !== null && order.pcs !== undefined ? order.pcs : '-'}</td>
-      <td>${escapeParcelHtml(order.state || '-')}</td>
-      <td>${order.weight !== null && order.weight !== undefined ? `${order.weight} lb` : '-'}</td>
-      <td>${order.freightCost !== null && order.freightCost !== undefined ? formatCurrency(order.freightCost) : '-'}</td>
     </tr>
   `;
 }
@@ -178,7 +165,7 @@ function renderParcelOrders(orders) {
   if (orders.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="11" class="empty-state">
+        <td colspan="7" class="empty-state">
           No parcel orders found for this period
         </td>
       </tr>
@@ -192,7 +179,7 @@ function renderParcelOrders(orders) {
 function renderParcelLoading() {
   document.getElementById('parcel-sla-list').innerHTML = `
     <tr>
-      <td colspan="11" class="loading">
+      <td colspan="7" class="loading">
         <div class="loading-spinner"></div>
         <p>Loading parcel SLA data...</p>
       </td>
@@ -203,7 +190,7 @@ function renderParcelLoading() {
 function renderParcelError(message) {
   document.getElementById('parcel-sla-list').innerHTML = `
     <tr>
-      <td colspan="11" class="error">
+      <td colspan="7" class="error">
         <p>Error: ${message}</p>
         <button onclick="loadParcelSla()" class="refresh-btn" style="margin-top: 12px;">Retry</button>
       </td>

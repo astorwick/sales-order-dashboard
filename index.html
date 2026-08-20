@@ -22,6 +22,7 @@
       <a href="#/orders" class="tab-link active" data-tab="orders">Unshipped Orders - US</a>
       <a href="#/orders-ca" class="tab-link" data-tab="orders-ca">Unshipped Orders - CA</a>
       <a href="#/parcel-sla" class="tab-link" data-tab="parcel-sla">Parcel SLA</a>
+      <a href="#/parcel-cost" class="tab-link" data-tab="parcel-cost">Parcel Cost</a>
       <a href="#/cx-ship-cost" class="tab-link" data-tab="cx-ship-cost">CX Ship Cost</a>
       <a href="#/usps-tracker" class="tab-link" data-tab="usps-tracker">Parcel Delivery Status</a>
       <a href="#/canceled" class="tab-link" data-tab="canceled">Canceled Orders</a>
@@ -436,21 +437,11 @@
             <div class="label">UPS</div>
             <div class="value" id="parcel-summary-ups">-</div>
           </div>
-          <div class="carrier-card-stats">
-            <div class="carrier-stat"><span class="carrier-stat-label">Avg Wgt</span><span id="parcel-summary-ups-avg-weight">-</span></div>
-            <div class="carrier-stat"><span class="carrier-stat-label">Avg Cost</span><span id="parcel-summary-ups-avg-freight">-</span></div>
-            <div class="carrier-stat"><span class="carrier-stat-label">Total</span><span id="parcel-summary-ups-total-freight">-</span></div>
-          </div>
         </div>
         <div class="summary-card parcel-usps carrier-card">
           <div class="carrier-card-main">
             <div class="label">USPS</div>
             <div class="value" id="parcel-summary-usps">-</div>
-          </div>
-          <div class="carrier-card-stats">
-            <div class="carrier-stat"><span class="carrier-stat-label">Avg Wgt</span><span id="parcel-summary-usps-avg-weight">-</span></div>
-            <div class="carrier-stat"><span class="carrier-stat-label">Avg Cost</span><span id="parcel-summary-usps-avg-freight">-</span></div>
-            <div class="carrier-stat"><span class="carrier-stat-label">Total</span><span id="parcel-summary-usps-total-freight">-</span></div>
           </div>
         </div>
         <div class="summary-card parcel-fedex carrier-card">
@@ -458,21 +449,11 @@
             <div class="label">FedEx</div>
             <div class="value" id="parcel-summary-fedex">-</div>
           </div>
-          <div class="carrier-card-stats">
-            <div class="carrier-stat"><span class="carrier-stat-label">Avg Wgt</span><span id="parcel-summary-fedex-avg-weight">-</span></div>
-            <div class="carrier-stat"><span class="carrier-stat-label">Avg Cost</span><span id="parcel-summary-fedex-avg-freight">-</span></div>
-            <div class="carrier-stat"><span class="carrier-stat-label">Total</span><span id="parcel-summary-fedex-total-freight">-</span></div>
-          </div>
         </div>
         <div class="summary-card parcel-amazon carrier-card">
           <div class="carrier-card-main">
             <div class="label">AmazonShip</div>
             <div class="value" id="parcel-summary-amazon">-</div>
-          </div>
-          <div class="carrier-card-stats">
-            <div class="carrier-stat"><span class="carrier-stat-label">Avg Wgt</span><span id="parcel-summary-amazon-avg-weight">-</span></div>
-            <div class="carrier-stat"><span class="carrier-stat-label">Avg Cost</span><span id="parcel-summary-amazon-avg-freight">-</span></div>
-            <div class="carrier-stat"><span class="carrier-stat-label">Total</span><span id="parcel-summary-amazon-total-freight">-</span></div>
           </div>
         </div>
       </div>
@@ -535,16 +516,127 @@
               <th>SLA (hrs)</th>
               <th>Tracking ID</th>
               <th>Carrier</th>
+            </tr>
+          </thead>
+          <tbody id="parcel-sla-list">
+            <tr>
+              <td colspan="7" class="loading">
+                <p>Navigate to this tab to load parcel SLA data.</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Parcel Cost View -->
+    <div id="view-parcel-cost" class="view-panel" style="display: none;">
+      <!-- Summary Cards -->
+      <div class="summary-cards">
+        <div class="summary-card">
+          <div class="label">Total Shipped</div>
+          <div class="value" id="parcel-cost-summary-total">-</div>
+        </div>
+        <div class="summary-card parcel-ups carrier-card">
+          <div class="carrier-card-main">
+            <div class="label">UPS</div>
+            <div class="value" id="parcel-cost-summary-ups">-</div>
+          </div>
+          <div class="carrier-card-stats">
+            <div class="carrier-stat"><span class="carrier-stat-label">Avg Wgt</span><span id="parcel-cost-summary-ups-avg-weight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Avg Cost</span><span id="parcel-cost-summary-ups-avg-freight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Total</span><span id="parcel-cost-summary-ups-total-freight">-</span></div>
+          </div>
+        </div>
+        <div class="summary-card parcel-usps carrier-card">
+          <div class="carrier-card-main">
+            <div class="label">USPS</div>
+            <div class="value" id="parcel-cost-summary-usps">-</div>
+          </div>
+          <div class="carrier-card-stats">
+            <div class="carrier-stat"><span class="carrier-stat-label">Avg Wgt</span><span id="parcel-cost-summary-usps-avg-weight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Avg Cost</span><span id="parcel-cost-summary-usps-avg-freight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Total</span><span id="parcel-cost-summary-usps-total-freight">-</span></div>
+          </div>
+        </div>
+        <div class="summary-card parcel-fedex carrier-card">
+          <div class="carrier-card-main">
+            <div class="label">FedEx</div>
+            <div class="value" id="parcel-cost-summary-fedex">-</div>
+          </div>
+          <div class="carrier-card-stats">
+            <div class="carrier-stat"><span class="carrier-stat-label">Avg Wgt</span><span id="parcel-cost-summary-fedex-avg-weight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Avg Cost</span><span id="parcel-cost-summary-fedex-avg-freight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Total</span><span id="parcel-cost-summary-fedex-total-freight">-</span></div>
+          </div>
+        </div>
+        <div class="summary-card parcel-amazon carrier-card">
+          <div class="carrier-card-main">
+            <div class="label">AmazonShip</div>
+            <div class="value" id="parcel-cost-summary-amazon">-</div>
+          </div>
+          <div class="carrier-card-stats">
+            <div class="carrier-stat"><span class="carrier-stat-label">Avg Wgt</span><span id="parcel-cost-summary-amazon-avg-weight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Avg Cost</span><span id="parcel-cost-summary-amazon-avg-freight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Total</span><span id="parcel-cost-summary-amazon-total-freight">-</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters">
+        <div class="filter-group">
+          <label for="parcel-cost-days-filter">Date Range:</label>
+          <select id="parcel-cost-days-filter">
+            <option value="7" selected>Last 7 days</option>
+            <option value="14">Last 14 days</option>
+            <option value="30">Last 30 days</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="parcel-cost-carrier-filter">Carrier:</label>
+          <select id="parcel-cost-carrier-filter">
+            <option value="all">All Carriers</option>
+            <option value="UPS">UPS</option>
+            <option value="USPS">USPS</option>
+            <option value="FEDEX">FedEx</option>
+            <option value="AMAZON">AmazonShip</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="parcel-cost-sort-filter">Sort By:</label>
+          <select id="parcel-cost-sort-filter">
+            <option value="created-desc" selected>Created (Newest)</option>
+            <option value="created-asc">Created (Oldest)</option>
+            <option value="po-asc">PO # (Ascending)</option>
+          </select>
+        </div>
+        <div class="filter-group export-group">
+          <span id="parcel-cost-filter-count" class="filter-count"></span>
+          <button id="export-parcel-cost-btn" class="export-btn">Export CSV</button>
+        </div>
+      </div>
+
+      <!-- Parcel Cost Table -->
+      <div class="orders-table-container">
+        <table class="orders-table">
+          <thead>
+            <tr>
+              <th>Order #</th>
+              <th>PO #</th>
+              <th>Created</th>
+              <th>Carrier</th>
+              <th>Service Level</th>
               <th>PCS</th>
               <th>State</th>
               <th>Weight</th>
               <th>Freight Cost</th>
             </tr>
           </thead>
-          <tbody id="parcel-sla-list">
+          <tbody id="parcel-cost-list">
             <tr>
-              <td colspan="11" class="loading">
-                <p>Navigate to this tab to load parcel SLA data.</p>
+              <td colspan="9" class="loading">
+                <p>Navigate to this tab to load parcel cost data.</p>
               </td>
             </tr>
           </tbody>
@@ -699,6 +791,7 @@
   <script src="usps-tracker.js"></script>
   <script src="inventory.js"></script>
   <script src="parcel-sla.js"></script>
+  <script src="parcel-cost.js"></script>
   <script src="cx-ship-cost.js"></script>
 </body>
 </html>

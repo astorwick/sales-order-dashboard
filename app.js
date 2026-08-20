@@ -14,6 +14,7 @@ let filters = {
 };
 let inventoryLoaded = false;
 let parcelSlaLoaded = false;
+let parcelCostLoaded = false;
 let cxShipCostLoaded = false;
 let uspsTrackerLoaded = false;
 let currentTab = '#/orders';
@@ -403,6 +404,8 @@ function refreshCurrentTab() {
     loadInventory();
   } else if (currentTab === '#/parcel-sla' && typeof loadParcelSla === 'function') {
     loadParcelSla();
+  } else if (currentTab === '#/parcel-cost' && typeof loadParcelCost === 'function') {
+    loadParcelCost();
   } else if (currentTab === '#/cx-ship-cost' && typeof loadCxShipCost === 'function') {
     loadCxShipCost();
   }
@@ -418,6 +421,7 @@ function handleRouteChange() {
   const viewUspsTracker = document.getElementById('view-usps-tracker');
   const viewInventory = document.getElementById('view-inventory');
   const viewParcelSla = document.getElementById('view-parcel-sla');
+  const viewParcelCost = document.getElementById('view-parcel-cost');
   const viewCxShipCost = document.getElementById('view-cx-ship-cost');
 
   // Update active tab
@@ -431,6 +435,7 @@ function handleRouteChange() {
   viewUspsTracker.style.display = 'none';
   viewInventory.style.display = 'none';
   viewParcelSla.style.display = 'none';
+  viewParcelCost.style.display = 'none';
   viewCxShipCost.style.display = 'none';
 
   if (hash === '#/orders' || hash === '') {
@@ -456,6 +461,12 @@ function handleRouteChange() {
     if (!parcelSlaLoaded && typeof loadParcelSla === 'function') {
       parcelSlaLoaded = true;
       loadParcelSla();
+    }
+  } else if (hash === '#/parcel-cost') {
+    viewParcelCost.style.display = 'block';
+    if (!parcelCostLoaded && typeof loadParcelCost === 'function') {
+      parcelCostLoaded = true;
+      loadParcelCost();
     }
   } else if (hash === '#/cx-ship-cost') {
     viewCxShipCost.style.display = 'block';
