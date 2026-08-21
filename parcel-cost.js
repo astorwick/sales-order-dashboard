@@ -8,6 +8,7 @@ let parcelCostDaysFilter = 7;
 let parcelCostCustomRange = null; // {startDate, endDate} when Custom Range is active, else null
 let parcelCostCarrierFilter = 'all';
 let parcelCostSortOption = 'created-desc';
+let parcelCostPage = 1;
 
 function formatParcelCostDate(dateString) {
   if (!dateString) return '-';
@@ -68,7 +69,8 @@ function sortParcelCostOrders(orders) {
   return sorted;
 }
 
-function applyParcelCostFiltersAndRender() {
+function applyParcelCostFiltersAndRender(resetPage = true) {
+  if (resetPage) parcelCostPage = 1;
   renderParcelCostOrders(sortParcelCostOrders(filterParcelCostOrders(parcelCostData)));
 }
 
@@ -117,6 +119,12 @@ function renderParcelCostCarrierCard(prefix, carrier, total) {
 function renderParcelCostSummary(summary) {
   const total = summary.total || 0;
   document.getElementById('parcel-cost-summary-total').textContent = total;
+  document.getElementById('parcel-cost-summary-total-avg-weight').textContent =
+    summary.avgWeight !== null && summary.avgWeight !== undefined ? `${summary.avgWeight} lb` : '-';
+  document.getElementById('parcel-cost-summary-total-avg-freight').textContent =
+    summary.avgFreight !== null && summary.avgFreight !== undefined ? formatCurrency(summary.avgFreight) : '-';
+  document.getElementById('parcel-cost-summary-total-total-freight').textContent =
+    formatCurrency(summary.totalFreight || 0);
   renderParcelCostCarrierCard('ups', summary.ups, total);
   renderParcelCostCarrierCard('usps', summary.usps, total);
   renderParcelCostCarrierCard('fedex', summary.fedex, total);
@@ -153,10 +161,17 @@ function renderParcelCostOrders(orders) {
         </td>
       </tr>
     `;
+    renderPaginationControls('parcel-cost-pagination', 1, 1, () => {});
     return;
   }
 
-  tbody.innerHTML = orders.map(renderParcelCostRow).join('');
+  const { pageItems, currentPage, totalPages } = paginate(orders, parcelCostPage);
+  parcelCostPage = currentPage;
+  tbody.innerHTML = pageItems.map(renderParcelCostRow).join('');
+  renderPaginationControls('parcel-cost-pagination', currentPage, totalPages, page => {
+    parcelCostPage = page;
+    applyParcelCostFiltersAndRender(false);
+  });
 }
 
 function renderParcelCostLoading() {

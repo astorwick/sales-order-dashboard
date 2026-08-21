@@ -8,6 +8,7 @@ let cxDaysFilter = 7;
 let cxCustomRange = null; // {startDate, endDate} when Custom Range is active, else null
 let cxCarrierFilter = 'all';
 let cxSortOption = 'created-desc';
+let cxPage = 1;
 
 function formatCxDate(dateString) {
   if (!dateString) return '-';
@@ -68,7 +69,8 @@ function sortCxOrders(orders) {
   return sorted;
 }
 
-function applyCxFiltersAndRender() {
+function applyCxFiltersAndRender(resetPage = true) {
+  if (resetPage) cxPage = 1;
   renderCxOrders(sortCxOrders(filterCxOrders(cxShipCostData)));
 }
 
@@ -117,6 +119,12 @@ function renderCxCarrierCard(prefix, carrier, total) {
 function renderCxSummary(summary) {
   const total = summary.total || 0;
   document.getElementById('cx-summary-total').textContent = total;
+  document.getElementById('cx-summary-total-avg-weight').textContent =
+    summary.avgWeight !== null && summary.avgWeight !== undefined ? `${summary.avgWeight} lb` : '-';
+  document.getElementById('cx-summary-total-avg-freight').textContent =
+    summary.avgFreight !== null && summary.avgFreight !== undefined ? formatCurrency(summary.avgFreight) : '-';
+  document.getElementById('cx-summary-total-total-freight').textContent =
+    formatCurrency(summary.totalFreight || 0);
   renderCxCarrierCard('ups', summary.ups, total);
   renderCxCarrierCard('usps', summary.usps, total);
   renderCxCarrierCard('fedex', summary.fedex, total);
@@ -153,10 +161,17 @@ function renderCxOrders(orders) {
         </td>
       </tr>
     `;
+    renderPaginationControls('cx-pagination', 1, 1, () => {});
     return;
   }
 
-  tbody.innerHTML = orders.map(renderCxRow).join('');
+  const { pageItems, currentPage, totalPages } = paginate(orders, cxPage);
+  cxPage = currentPage;
+  tbody.innerHTML = pageItems.map(renderCxRow).join('');
+  renderPaginationControls('cx-pagination', currentPage, totalPages, page => {
+    cxPage = page;
+    applyCxFiltersAndRender(false);
+  });
 }
 
 function renderCxLoading() {

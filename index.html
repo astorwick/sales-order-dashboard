@@ -537,15 +537,23 @@
           </tbody>
         </table>
       </div>
+      <div class="pagination" id="parcel-pagination"></div>
     </div>
 
     <!-- Parcel Cost View -->
     <div id="view-parcel-cost" class="view-panel" style="display: none;">
       <!-- Summary Cards -->
       <div class="summary-cards">
-        <div class="summary-card">
-          <div class="label">Total Shipped</div>
-          <div class="value" id="parcel-cost-summary-total">-</div>
+        <div class="summary-card carrier-card">
+          <div class="carrier-card-main">
+            <div class="label">Total Shipped</div>
+            <div class="value" id="parcel-cost-summary-total">-</div>
+          </div>
+          <div class="carrier-card-stats">
+            <div class="carrier-stat"><span class="carrier-stat-label">Avg Wgt</span><span id="parcel-cost-summary-total-avg-weight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Avg Cost</span><span id="parcel-cost-summary-total-avg-freight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Total</span><span id="parcel-cost-summary-total-total-freight">-</span></div>
+          </div>
         </div>
         <div class="summary-card parcel-ups carrier-card">
           <div class="carrier-card-main">
@@ -661,15 +669,23 @@
           </tbody>
         </table>
       </div>
+      <div class="pagination" id="parcel-cost-pagination"></div>
     </div>
 
     <!-- CX Ship Cost View -->
     <div id="view-cx-ship-cost" class="view-panel" style="display: none;">
       <!-- Summary Cards -->
       <div class="summary-cards">
-        <div class="summary-card">
-          <div class="label">Total Shipped</div>
-          <div class="value" id="cx-summary-total">-</div>
+        <div class="summary-card carrier-card">
+          <div class="carrier-card-main">
+            <div class="label">Total Shipped</div>
+            <div class="value" id="cx-summary-total">-</div>
+          </div>
+          <div class="carrier-card-stats">
+            <div class="carrier-stat"><span class="carrier-stat-label">Avg Wgt</span><span id="cx-summary-total-avg-weight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Avg Cost</span><span id="cx-summary-total-avg-freight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Total</span><span id="cx-summary-total-total-freight">-</span></div>
+          </div>
         </div>
         <div class="summary-card parcel-ups carrier-card">
           <div class="carrier-card-main">
@@ -785,6 +801,7 @@
           </tbody>
         </table>
       </div>
+      <div class="pagination" id="cx-pagination"></div>
     </div>
 
     <!-- Duplicate Shipments View -->

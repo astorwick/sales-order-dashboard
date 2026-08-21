@@ -41,6 +41,7 @@ module.exports = async (req, res) => {
       fedex: { count: 0, freightTotal: 0, freightCount: 0, weightTotal: 0, weightCount: 0 },
       amazon: { count: 0, freightTotal: 0, freightCount: 0, weightTotal: 0, weightCount: 0 }
     };
+    const overallStats = { freightTotal: 0, freightCount: 0, weightTotal: 0, weightCount: 0 };
 
     const orders = rows.map(row => {
       const freightCost = row.freight_cost !== null ? Number(row.freight_cost) : null;
@@ -63,6 +64,15 @@ module.exports = async (req, res) => {
           stats.weightTotal += weight;
           stats.weightCount++;
         }
+      }
+
+      if (freightCost !== null) {
+        overallStats.freightTotal += freightCost;
+        overallStats.freightCount++;
+      }
+      if (weight !== null) {
+        overallStats.weightTotal += weight;
+        overallStats.weightCount++;
       }
 
       return {
@@ -88,6 +98,9 @@ module.exports = async (req, res) => {
 
     const summary = {
       total: orders.length,
+      avgWeight: overallStats.weightCount > 0 ? round2(overallStats.weightTotal / overallStats.weightCount) : null,
+      avgFreight: overallStats.freightCount > 0 ? round2(overallStats.freightTotal / overallStats.freightCount) : null,
+      totalFreight: round2(overallStats.freightTotal),
       ups: carrierSummary(carrierStats.ups),
       usps: carrierSummary(carrierStats.usps),
       fedex: carrierSummary(carrierStats.fedex),

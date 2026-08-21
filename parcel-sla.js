@@ -8,6 +8,7 @@ let parcelCustomRange = null; // {startDate, endDate} when Custom Range is activ
 let parcelStatusFilter = 'all';
 let parcelCarrierFilter = 'all';
 let parcelSortOption = 'shipped-desc';
+let parcelPage = 1;
 
 function formatParcelDate(dateString) {
   if (!dateString) return '-';
@@ -93,7 +94,8 @@ function sortParcelOrders(orders) {
   return sorted;
 }
 
-function applyParcelFiltersAndRender() {
+function applyParcelFiltersAndRender(resetPage = true) {
+  if (resetPage) parcelPage = 1;
   renderParcelOrders(sortParcelOrders(filterParcelOrders(parcelSlaData)));
 }
 
@@ -174,10 +176,17 @@ function renderParcelOrders(orders) {
         </td>
       </tr>
     `;
+    renderPaginationControls('parcel-pagination', 1, 1, () => {});
     return;
   }
 
-  tbody.innerHTML = orders.map(renderParcelRow).join('');
+  const { pageItems, currentPage, totalPages } = paginate(orders, parcelPage);
+  parcelPage = currentPage;
+  tbody.innerHTML = pageItems.map(renderParcelRow).join('');
+  renderPaginationControls('parcel-pagination', currentPage, totalPages, page => {
+    parcelPage = page;
+    applyParcelFiltersAndRender(false);
+  });
 }
 
 function renderParcelLoading() {

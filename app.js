@@ -59,6 +59,34 @@ function csvEscape(value) {
   return str;
 }
 
+// Pagination Utility (shared across tabs)
+const PAGE_SIZE = 100;
+
+function paginate(items, page, pageSize = PAGE_SIZE) {
+  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+  const currentPage = Math.min(Math.max(1, page), totalPages);
+  const start = (currentPage - 1) * pageSize;
+  return { pageItems: items.slice(start, start + pageSize), currentPage, totalPages };
+}
+
+function renderPaginationControls(containerId, currentPage, totalPages, onPageChange) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  if (totalPages <= 1) {
+    container.innerHTML = '';
+    return;
+  }
+
+  container.innerHTML = `
+    <button class="pagination-btn" data-action="prev" ${currentPage <= 1 ? 'disabled' : ''}>&lsaquo; Prev</button>
+    <span class="pagination-info">Page ${currentPage} of ${totalPages}</span>
+    <button class="pagination-btn" data-action="next" ${currentPage >= totalPages ? 'disabled' : ''}>Next &rsaquo;</button>
+  `;
+  container.querySelector('[data-action="prev"]').addEventListener('click', () => onPageChange(currentPage - 1));
+  container.querySelector('[data-action="next"]').addEventListener('click', () => onPageChange(currentPage + 1));
+}
+
 // Utility Functions
 function escapeHtml(str) {
   if (!str) return '';
