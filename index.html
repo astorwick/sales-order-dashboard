@@ -24,7 +24,7 @@
       <a href="#/parcel-sla" class="tab-link" data-tab="parcel-sla">Parcel SLA</a>
       <a href="#/parcel-cost" class="tab-link" data-tab="parcel-cost">Parcel Cost</a>
       <a href="#/cx-ship-cost" class="tab-link" data-tab="cx-ship-cost">CX Ship Cost</a>
-      <a href="#/duplicate-shipments" class="tab-link" data-tab="duplicate-shipments">Duplicate Shipments</a>
+      <a href="#/duplicate-orders" class="tab-link" data-tab="duplicate-orders">Duplicate Orders</a>
       <a href="#/usps-tracker" class="tab-link" data-tab="usps-tracker">Parcel Delivery Status</a>
       <a href="#/canceled" class="tab-link" data-tab="canceled">Canceled Orders</a>
       <a href="#/inventory" class="tab-link" data-tab="inventory">Shopify Run Rate (WIP)</a>
@@ -804,8 +804,8 @@
       <div class="pagination" id="cx-pagination"></div>
     </div>
 
-    <!-- Duplicate Shipments View -->
-    <div id="view-duplicate-shipments" class="view-panel" style="display: none;">
+    <!-- Duplicate Orders View -->
+    <div id="view-duplicate-orders" class="view-panel" style="display: none;">
       <!-- Summary Cards -->
       <div class="summary-cards">
         <div class="summary-card">
@@ -813,25 +813,26 @@
           <div class="value" id="duplicate-summary-groups">-</div>
         </div>
         <div class="summary-card">
-          <div class="label">Extra Shipments</div>
-          <div class="value" id="duplicate-summary-extra-shipments">-</div>
+          <div class="label">Flagged Orders</div>
+          <div class="value" id="duplicate-summary-flagged-orders">-</div>
         </div>
         <div class="summary-card">
-          <div class="label">Extra Freight Cost</div>
-          <div class="value" id="duplicate-summary-extra-freight">-</div>
+          <div class="label">Open Orders (7d)</div>
+          <div class="value" id="duplicate-summary-scanned">-</div>
         </div>
       </div>
 
-      <p class="tab-note">Every Shopify order should map to exactly one UNIS shipment. More than one usually means a duplicate shipment request was created upstream (e.g. a Celigo flow glitch), not a legitimate multi-package split — duplicate pairs typically ship within seconds of each other with identical weight and freight cost. Rows for the same order are adjacent since they ship so close together in time.</p>
+      <p class="tab-note">Failsafe check against live UNIS data: pulls all orders created in the last 7 days, drops anything already shipped or canceled, and flags PO #s shared by more than one still-open order — usually an upstream duplicate-order-creation bug (e.g. a Celigo flow glitch), not a legitimate multi-package split. Catching these here means a duplicate can still be canceled before it ships; once shipped or already canceled, it's out of scope for this tab.</p>
+      <p class="tab-note" id="duplicate-window-info"></p>
 
       <!-- Filters -->
       <div class="filters">
         <div class="filter-group">
           <label for="duplicate-sort-filter">Sort By:</label>
           <select id="duplicate-sort-filter">
-            <option value="shipped-desc" selected>Shipped (Newest)</option>
-            <option value="shipped-asc">Shipped (Oldest)</option>
-            <option value="po-asc">PO # (Ascending)</option>
+            <option value="po-asc" selected>PO # (Ascending)</option>
+            <option value="created-desc">Created (Newest)</option>
+            <option value="created-asc">Created (Oldest)</option>
           </select>
         </div>
         <div class="filter-group export-group">
@@ -840,7 +841,7 @@
         </div>
       </div>
 
-      <!-- Duplicate Shipments Table -->
+      <!-- Duplicate Orders Table -->
       <div class="orders-table-container">
         <table class="orders-table">
           <thead>
@@ -848,18 +849,17 @@
               <th>PO #</th>
               <th>Order #</th>
               <th>Group Size</th>
+              <th>Status</th>
+              <th>PreStatus</th>
+              <th>Order Type</th>
               <th>Created</th>
-              <th>Shipped</th>
-              <th>Carrier</th>
-              <th>Tracking ID</th>
-              <th>Weight</th>
-              <th>Freight Cost</th>
+              <th>Ship To Name</th>
             </tr>
           </thead>
-          <tbody id="duplicate-shipments-list">
+          <tbody id="duplicate-orders-list">
             <tr>
-              <td colspan="9" class="loading">
-                <p>Navigate to this tab to load duplicate shipment data.</p>
+              <td colspan="8" class="loading">
+                <p>Navigate to this tab to load duplicate order data.</p>
               </td>
             </tr>
           </tbody>
@@ -874,6 +874,6 @@
   <script src="parcel-sla.js"></script>
   <script src="parcel-cost.js"></script>
   <script src="cx-ship-cost.js"></script>
-  <script src="duplicate-shipments.js"></script>
+  <script src="duplicate-orders.js"></script>
 </body>
 </html>

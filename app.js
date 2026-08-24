@@ -16,7 +16,7 @@ let inventoryLoaded = false;
 let parcelSlaLoaded = false;
 let parcelCostLoaded = false;
 let cxShipCostLoaded = false;
-let duplicateShipmentsLoaded = false;
+let duplicateOrdersLoaded = false;
 let uspsTrackerLoaded = false;
 let currentTab = '#/orders';
 let tabLastUpdated = {};
@@ -437,8 +437,8 @@ function refreshCurrentTab() {
     loadParcelCost();
   } else if (currentTab === '#/cx-ship-cost' && typeof loadCxShipCost === 'function') {
     loadCxShipCost();
-  } else if (currentTab === '#/duplicate-shipments' && typeof loadDuplicateShipments === 'function') {
-    loadDuplicateShipments();
+  } else if (currentTab === '#/duplicate-orders' && typeof loadDuplicateOrders === 'function') {
+    loadDuplicateOrders();
   }
 }
 
@@ -454,7 +454,7 @@ function handleRouteChange() {
   const viewParcelSla = document.getElementById('view-parcel-sla');
   const viewParcelCost = document.getElementById('view-parcel-cost');
   const viewCxShipCost = document.getElementById('view-cx-ship-cost');
-  const viewDuplicateShipments = document.getElementById('view-duplicate-shipments');
+  const viewDuplicateOrders = document.getElementById('view-duplicate-orders');
 
   // Update active tab
   tabLinks.forEach(link => {
@@ -469,7 +469,7 @@ function handleRouteChange() {
   viewParcelSla.style.display = 'none';
   viewParcelCost.style.display = 'none';
   viewCxShipCost.style.display = 'none';
-  viewDuplicateShipments.style.display = 'none';
+  viewDuplicateOrders.style.display = 'none';
 
   if (hash === '#/orders' || hash === '') {
     currentTab = '#/orders';
@@ -507,11 +507,11 @@ function handleRouteChange() {
       cxShipCostLoaded = true;
       loadCxShipCost();
     }
-  } else if (hash === '#/duplicate-shipments') {
-    viewDuplicateShipments.style.display = 'block';
-    if (!duplicateShipmentsLoaded && typeof loadDuplicateShipments === 'function') {
-      duplicateShipmentsLoaded = true;
-      loadDuplicateShipments();
+  } else if (hash === '#/duplicate-orders') {
+    viewDuplicateOrders.style.display = 'block';
+    if (!duplicateOrdersLoaded && typeof loadDuplicateOrders === 'function') {
+      duplicateOrdersLoaded = true;
+      loadDuplicateOrders();
     }
   }
   // Other tabs show blank (coming soon)
