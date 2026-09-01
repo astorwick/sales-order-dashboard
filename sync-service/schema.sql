@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS parcel_shipments (
   unis_order_no     TEXT PRIMARY KEY,               -- UNIS's own DC/shipment identifier, e.g. 'DN-3292103'
   po_no             TEXT,                           -- Shopify order name, e.g. '#123456' (join key, not unique)
   order_created_at  TIMESTAMPTZ,                    -- Shopify createdAt, fallback UNIS OrderedDate
+  unis_created_at   TIMESTAMPTZ,                    -- UNIS order-level "Order Create Date"+"Order Create Time" (when the order was placed in UNIS, not shipped) — drives Parcel SLA calc, see api/parcel-sla.js
   shipped_date      TIMESTAMPTZ NOT NULL,            -- DC ShippedDate — every row here is a completed shipment
   carrier           TEXT,
   tracking_number   TEXT,
@@ -21,6 +22,10 @@ CREATE TABLE IF NOT EXISTS parcel_shipments (
   synced_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Added after initial launch — CREATE TABLE IF NOT EXISTS above doesn't retrofit an
+-- already-existing table, so this ALTER keeps schema.sql idempotent/rerunnable.
+ALTER TABLE parcel_shipments ADD COLUMN IF NOT EXISTS unis_created_at TIMESTAMPTZ;
 
 CREATE INDEX IF NOT EXISTS idx_parcel_shipments_po_no        ON parcel_shipments (po_no);
 CREATE INDEX IF NOT EXISTS idx_parcel_shipments_created_at   ON parcel_shipments (order_created_at DESC);

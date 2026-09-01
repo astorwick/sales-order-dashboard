@@ -78,6 +78,12 @@ function sortParcelOrders(orders) {
     case 'created-asc':
       sorted.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
       break;
+    case 'unis-created-desc':
+      sorted.sort((a, b) => new Date(b.unisCreatedAt || 0) - new Date(a.unisCreatedAt || 0));
+      break;
+    case 'unis-created-asc':
+      sorted.sort((a, b) => new Date(a.unisCreatedAt || 0) - new Date(b.unisCreatedAt || 0));
+      break;
     case 'shipped-asc':
       sorted.sort((a, b) => new Date(a.shippedDate || 0) - new Date(b.shippedDate || 0));
       break;
@@ -103,11 +109,12 @@ function exportParcelSlaCSV() {
   const filtered = sortParcelOrders(filterParcelOrders(parcelSlaData));
   if (!filtered.length) return;
 
-  const headers = ['Order #', 'PO #', 'Created', 'Shipped', 'SLA (hrs)', 'Tracking ID', 'Carrier'];
+  const headers = ['Order #', 'PO #', 'Shopify Created', 'Unis Created', 'Shipped', 'SLA (hrs)', 'Tracking ID', 'Carrier'];
   const rows = filtered.map(order => [
     csvEscape(order.orderNo),
     csvEscape(order.poNo),
     csvEscape(order.createdAt ? new Date(order.createdAt).toLocaleString() : ''),
+    csvEscape(order.unisCreatedAt ? new Date(order.unisCreatedAt).toLocaleString() : ''),
     csvEscape(order.shippedDate ? new Date(order.shippedDate).toLocaleString() : ''),
     csvEscape(formatSlaHours(order.slaHours)),
     csvEscape(order.trackingNumber || ''),
@@ -154,6 +161,7 @@ function renderParcelRow(order) {
       <td><span class="order-number">${escapeParcelHtml(order.orderNo)}</span></td>
       <td>${escapeParcelHtml(order.poNo)}</td>
       <td>${formatParcelDate(order.createdAt)}</td>
+      <td>${formatParcelDate(order.unisCreatedAt)}</td>
       <td>${formatParcelDate(order.shippedDate)}</td>
       <td><span class="sla-time ${slaClass}">${slaDisplay}</span></td>
       <td class="tracking-cell">${escapeParcelHtml(order.trackingNumber || '-')}</td>
@@ -171,7 +179,7 @@ function renderParcelOrders(orders) {
   if (orders.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="7" class="empty-state">
+        <td colspan="8" class="empty-state">
           No parcel orders found for this period
         </td>
       </tr>
@@ -192,7 +200,7 @@ function renderParcelOrders(orders) {
 function renderParcelLoading() {
   document.getElementById('parcel-sla-list').innerHTML = `
     <tr>
-      <td colspan="7" class="loading">
+      <td colspan="8" class="loading">
         <div class="loading-spinner"></div>
         <p>Loading parcel SLA data...</p>
       </td>
@@ -203,7 +211,7 @@ function renderParcelLoading() {
 function renderParcelError(message) {
   document.getElementById('parcel-sla-list').innerHTML = `
     <tr>
-      <td colspan="7" class="error">
+      <td colspan="8" class="error">
         <p>Error: ${message}</p>
         <button onclick="loadParcelSla()" class="refresh-btn" style="margin-top: 12px;">Retry</button>
       </td>

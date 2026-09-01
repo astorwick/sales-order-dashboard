@@ -501,8 +501,10 @@
           <select id="parcel-sort-filter">
             <option value="shipped-desc" selected>Shipped (Newest)</option>
             <option value="shipped-asc">Shipped (Oldest)</option>
-            <option value="created-desc">Created (Newest)</option>
-            <option value="created-asc">Created (Oldest)</option>
+            <option value="created-desc">Shopify Created (Newest)</option>
+            <option value="created-asc">Shopify Created (Oldest)</option>
+            <option value="unis-created-desc">Unis Created (Newest)</option>
+            <option value="unis-created-asc">Unis Created (Oldest)</option>
             <option value="po-asc">PO # (Ascending)</option>
             <option value="sla-asc">SLA (Shortest)</option>
             <option value="sla-desc">SLA (Longest)</option>
@@ -521,7 +523,8 @@
             <tr>
               <th>Order #</th>
               <th>PO #</th>
-              <th>Created</th>
+              <th>Shopify Created</th>
+              <th>Unis Created</th>
               <th>Shipped</th>
               <th>SLA (hrs)</th>
               <th>Tracking ID</th>
@@ -530,7 +533,7 @@
           </thead>
           <tbody id="parcel-sla-list">
             <tr>
-              <td colspan="7" class="loading">
+              <td colspan="8" class="loading">
                 <p>Navigate to this tab to load parcel SLA data.</p>
               </td>
             </tr>

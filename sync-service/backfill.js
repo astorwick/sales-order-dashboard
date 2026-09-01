@@ -6,6 +6,7 @@ const { upsertShipmentsBatch } = require('./upsert-shipment');
 const TOTAL_WEEKS = 52;
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const SHOPIFY_LOOKBACK_MS = 14 * 24 * 60 * 60 * 1000; // orders can be placed well before they ship
+const UNIS_ORDER_LEVEL_LOOKBACK_MS = 10 * 24 * 60 * 60 * 1000; // narrower than Shopify's 14-day margin — per user, orders don't typically sit that long before shipping
 
 function weekChunks(totalWeeks) {
   const chunks = [];
@@ -53,15 +54,21 @@ async function runBackfill() {
 
     try {
       const shopifyLookbackStart = new Date(start.getTime() - SHOPIFY_LOOKBACK_MS);
+      const unisLookbackStart = new Date(start.getTime() - UNIS_ORDER_LEVEL_LOOKBACK_MS);
 
-      const [unisOrders, shopifyOrders] = await Promise.all([
+      const [unisOrders, shopifyOrders, unisCreateTimes] = await Promise.all([
         threePL.getShippedOrdersInRange(start, end),
-        shopify.getFulfilledOrdersInRange(shopifyLookbackStart.toISOString(), end.toISOString())
+        shopify.getFulfilledOrdersInRange(shopifyLookbackStart.toISOString(), end.toISOString()),
+        threePL.getOrderLevelCreateTimesInRange(unisLookbackStart, end)
       ]);
 
       const shopifyMap = new Map(shopifyOrders.map(o => [o.name, o]));
 
-      const pairs = unisOrders.map(unis => ({ unis, shopifyOrder: shopifyMap.get(unis.poNo) || null }));
+      const pairs = unisOrders.map(unis => ({
+        unis,
+        shopifyOrder: shopifyMap.get(unis.poNo) || null,
+        unisCreatedAt: unisCreateTimes.get(unis.unisOrderNo) || null
+      }));
       const matched = pairs.filter(p => p.shopifyOrder).length;
       await upsertShipmentsBatch(pairs);
 

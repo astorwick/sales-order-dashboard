@@ -45,8 +45,12 @@ async function runSync() {
     const shopifyOrders = await shopify.getOrdersByNames(poNos);
     const shopifyMap = new Map(shopifyOrders.map(o => [o.name, o]));
 
+    const unisCreateTimes = await threePL.getOrderCreateTimesForShipments(
+      unisOrders.map(o => ({ unisOrderNo: o.unisOrderNo, poNo: o.poNo }))
+    );
+
     for (const unis of unisOrders) {
-      await upsertShipment(unis, shopifyMap.get(unis.poNo) || null);
+      await upsertShipment(unis, shopifyMap.get(unis.poNo) || null, unisCreateTimes.get(unis.unisOrderNo) || null);
     }
 
     await setSyncState(until, 'success');

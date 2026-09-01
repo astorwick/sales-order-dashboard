@@ -59,7 +59,7 @@ module.exports = async (req, res) => {
     const { whereClause, params } = buildShippedDateFilter(req.query);
 
     const { rows } = await db.query(`
-      SELECT po_no, unis_order_no, order_created_at, shipped_date, tracking_number, carrier
+      SELECT po_no, unis_order_no, order_created_at, unis_created_at, shipped_date, tracking_number, carrier
       FROM parcel_shipments
       WHERE ${whereClause}
       ORDER BY shipped_date DESC
@@ -79,14 +79,19 @@ module.exports = async (req, res) => {
 
     const orders = rows.map(row => {
       const createdAt = row.order_created_at ? row.order_created_at.toISOString() : null;
+      const unisCreatedAt = row.unis_created_at ? row.unis_created_at.toISOString() : null;
       const shippedDate = row.shipped_date ? row.shipped_date.toISOString() : null;
 
-      // Calculate SLA (Shopify created -> UNIS shipped)
+      // SLA clock starts when UNIS received the order, not when the Shopify order was placed —
+      // falls back to Shopify created time for rows not yet backfilled with a UNIS order-level
+      // create time (see sync-service/backfill-unis-created.js).
+      const slaStartAt = unisCreatedAt || createdAt;
+
       let slaHours = null;
       let withinSlaFlag = null;
 
-      if (createdAt && shippedDate) {
-        const created = new Date(createdAt);
+      if (slaStartAt && shippedDate) {
+        const created = new Date(slaStartAt);
         const shipped = new Date(shippedDate);
         slaHours = calcBusinessHours(created, shipped);
 
@@ -116,6 +121,7 @@ module.exports = async (req, res) => {
         orderNo: row.unis_order_no || '',
         poNo: row.po_no || '',
         createdAt: createdAt,
+        unisCreatedAt: unisCreatedAt,
         shippedDate: shippedDate,
         trackingNumber: row.tracking_number || null,
         carrier: row.carrier || '',
