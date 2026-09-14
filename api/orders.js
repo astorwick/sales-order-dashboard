@@ -52,7 +52,7 @@ function isShippableOrder(lineItems) {
   if (!lineItems || lineItems.length === 0) return false;
   return lineItems.some(item =>
     item.location === 'On Hand Inventory (SEKO Global)' &&
-    item.sku !== 'COFFEE_CLUB' &&
+    !item.sku?.includes('COFFEE_CLUB') &&
     !item.sku?.includes('ROUTEINS')
   );
 }
