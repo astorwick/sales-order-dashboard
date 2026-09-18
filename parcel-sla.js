@@ -47,7 +47,7 @@ function matchesCarrierFilter(carrier, filter) {
     case 'USPS':   return c.includes('USPS');
     case 'UPS':    return !c.includes('USPS') && c.includes('UPS');
     case 'FEDEX':  return c.includes('FEDEX') || c.includes('FED EX');
-    case 'AMAZON': return c.includes('AMAZON');
+    case 'AMAZON': return c.includes('AMAZON') || c.includes('AMZN');
     default:       return true;
   }
 }

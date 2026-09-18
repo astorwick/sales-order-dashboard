@@ -52,7 +52,7 @@ module.exports = async (req, res) => {
       if (carrierUpper.includes('USPS')) stats = carrierStats.usps;
       else if (carrierUpper.includes('UPS')) stats = carrierStats.ups;
       else if (carrierUpper.includes('FEDEX') || carrierUpper.includes('FED EX')) stats = carrierStats.fedex;
-      else if (carrierUpper.includes('AMAZON')) stats = carrierStats.amazon;
+      else if (carrierUpper.includes('AMAZON') || carrierUpper.includes('AMZN')) stats = carrierStats.amazon;
 
       if (stats) {
         stats.count++;
