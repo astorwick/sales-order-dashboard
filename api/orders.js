@@ -46,18 +46,22 @@ function calculateTimeInStage(stageEnteredAt) {
   return Math.floor((now - entered) / (1000 * 60)); // minutes
 }
 
+function isRelevantLineItem(item) {
+  // A line item that actually needs to ship from Ember's fulfillment location — excludes
+  // COFFEE_CLUB/ROUTEINS SKUs, which aren't physical parcel shipments.
+  return item.location === 'On Hand Inventory (SEKO Global)' &&
+    !item.sku?.includes('COFFEE_CLUB') &&
+    !item.sku?.includes('ROUTEINS');
+}
+
 function isShippableOrder(lineItems) {
   // Order is shippable if at least one line item ships from "On Hand Inventory (SEKO Global)"
   // and is not a COFFEE_CLUB SKU
   if (!lineItems || lineItems.length === 0) return false;
-  return lineItems.some(item =>
-    item.location === 'On Hand Inventory (SEKO Global)' &&
-    !item.sku?.includes('COFFEE_CLUB') &&
-    !item.sku?.includes('ROUTEINS')
-  );
+  return lineItems.some(isRelevantLineItem);
 }
 
-function determinePossibleCause(shopifyOrder) {
+function determinePossibleCause(shopifyOrder, inventoryByVariantId) {
   // Returns array of possible causes for stuck orders
   const causes = [];
 
@@ -74,6 +78,14 @@ function determinePossibleCause(shopifyOrder) {
   // Check for long address fields (>40 characters)
   if (shopifyOrder.hasLongAddress) {
     causes.push('Long Address');
+  }
+
+  // Check for out-of-stock inventory on any line item this order actually needs to ship
+  const isOOS = (shopifyOrder.lineItems || [])
+    .filter(isRelevantLineItem)
+    .some(item => item.variantId && (inventoryByVariantId.get(item.variantId) ?? 1) <= 0);
+  if (isOOS) {
+    causes.push('OOS');
   }
 
   return causes;
@@ -202,8 +214,9 @@ async function aggregateOrders(daysBack = 7) {
     threePL.getOrderStatuses(orderNames)
   ]);
 
-  // Aggregate order data
-  const aggregatedOrders = shopifyOrders.map(shopifyOrder => {
+  // First pass: stage/status per order, without possible causes yet — status has to be known
+  // before we can decide which orders are worth an inventory check.
+  const partial = shopifyOrders.map(shopifyOrder => {
     const orderName = shopifyOrder.name; // e.g., "#123456"
     const sapOrder = sapOrders[orderName];
     const threePlStatus = threePlStatuses[orderName];
@@ -214,7 +227,28 @@ async function aggregateOrders(daysBack = 7) {
     const shippable = isShippableOrder(shopifyOrder.lineItems);
     const hasUnfulfilledLines = !shopifyOrder.isFulfilled;
     const status = determineStatus(timeInStage, threshold, shippable, stageInfo.stage, hasUnfulfilledLines);
-    const possibleCauses = determinePossibleCause(shopifyOrder);
+
+    return { shopifyOrder, sapOrder, threePlStatus, stageInfo, timeInStage, threshold, shippable, status };
+  });
+
+  // Live Shopify inventory is only worth checking for orders that are actually stuck — that's
+  // the only status "Possible Cause" is surfaced for (see app.js) — so this keeps the lookup to
+  // a small targeted batch instead of every line item on every order in the date range.
+  const stuckVariantIds = [...new Set(
+    partial
+      .filter(p => p.status === 'stuck')
+      .flatMap(p => p.shopifyOrder.lineItems || [])
+      .filter(isRelevantLineItem)
+      .map(item => item.variantId)
+      .filter(Boolean)
+  )];
+  const inventoryByVariantId = stuckVariantIds.length > 0
+    ? await shopify.getAvailableInventoryForVariantIds(stuckVariantIds)
+    : new Map();
+
+  // Aggregate order data
+  const aggregatedOrders = partial.map(({ shopifyOrder, sapOrder, threePlStatus, stageInfo, timeInStage, threshold, shippable, status }) => {
+    const possibleCauses = determinePossibleCause(shopifyOrder, inventoryByVariantId);
 
     const stageIndex = STAGE_ORDER.indexOf(stageInfo.stage);
 

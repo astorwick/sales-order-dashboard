@@ -72,14 +72,14 @@
           <div class="multi-select" id="stage-filter">
             <button class="multi-select-btn" type="button">All Stages</button>
             <div class="multi-select-dropdown">
-              <label class="multi-select-option multi-select-all"><input type="checkbox" class="select-all-cb"> Select All</label>
+              <label class="multi-select-option multi-select-all"><input type="checkbox" class="select-all-cb" checked> Select All</label>
               <div class="multi-select-divider"></div>
-              <label class="multi-select-option"><input type="checkbox" value="shopify"> Shopify</label>
-              <label class="multi-select-option"><input type="checkbox" value="sap"> SAP ERP</label>
-              <label class="multi-select-option"><input type="checkbox" value="3pl_request"> 3PL Request Sent</label>
-              <label class="multi-select-option"><input type="checkbox" value="warehouse_received"> Warehouse Received</label>
-              <label class="multi-select-option"><input type="checkbox" value="shipped"> Shipped</label>
-              <label class="multi-select-option"><input type="checkbox" value="tracking"> Tracking</label>
+              <label class="multi-select-option"><input type="checkbox" value="shopify" checked> Shopify</label>
+              <label class="multi-select-option"><input type="checkbox" value="sap" checked> SAP ERP</label>
+              <label class="multi-select-option"><input type="checkbox" value="3pl_request" checked> 3PL Request Sent</label>
+              <label class="multi-select-option"><input type="checkbox" value="warehouse_received" checked> Warehouse Received</label>
+              <label class="multi-select-option"><input type="checkbox" value="shipped" checked> Shipped</label>
+              <label class="multi-select-option"><input type="checkbox" value="tracking" checked> Tracking</label>
             </div>
           </div>
         </div>
@@ -88,14 +88,29 @@
           <div class="multi-select" id="status-filter">
             <button class="multi-select-btn" type="button">All Statuses</button>
             <div class="multi-select-dropdown">
-              <label class="multi-select-option multi-select-all"><input type="checkbox" class="select-all-cb"> Select All</label>
+              <label class="multi-select-option multi-select-all"><input type="checkbox" class="select-all-cb" checked> Select All</label>
               <div class="multi-select-divider"></div>
-              <label class="multi-select-option"><input type="checkbox" value="unshippable"> Unshippable</label>
-              <label class="multi-select-option"><input type="checkbox" value="missing_tracking"> Missing Tracking</label>
-              <label class="multi-select-option"><input type="checkbox" value="stuck"> Stuck</label>
-              <label class="multi-select-option"><input type="checkbox" value="warning"> Warning</label>
-              <label class="multi-select-option"><input type="checkbox" value="ok"> On Track</label>
-              <label class="multi-select-option"><input type="checkbox" value="complete"> Complete</label>
+              <label class="multi-select-option"><input type="checkbox" value="unshippable" checked> Unshippable</label>
+              <label class="multi-select-option"><input type="checkbox" value="missing_tracking" checked> Missing Tracking</label>
+              <label class="multi-select-option"><input type="checkbox" value="stuck" checked> Stuck</label>
+              <label class="multi-select-option"><input type="checkbox" value="warning" checked> Warning</label>
+              <label class="multi-select-option"><input type="checkbox" value="ok" checked> On Track</label>
+              <label class="multi-select-option"><input type="checkbox" value="complete" checked> Complete</label>
+            </div>
+          </div>
+        </div>
+        <div class="filter-group">
+          <label>Cause:</label>
+          <div class="multi-select" id="cause-filter">
+            <button class="multi-select-btn" type="button">All Causes</button>
+            <div class="multi-select-dropdown">
+              <label class="multi-select-option multi-select-all"><input type="checkbox" class="select-all-cb" checked> Select All</label>
+              <div class="multi-select-divider"></div>
+              <label class="multi-select-option"><input type="checkbox" value="On Hold" checked> On Hold</label>
+              <label class="multi-select-option"><input type="checkbox" value="Canceled" checked> Canceled</label>
+              <label class="multi-select-option"><input type="checkbox" value="Long Address" checked> Long Address</label>
+              <label class="multi-select-option"><input type="checkbox" value="OOS" checked> OOS</label>
+              <label class="multi-select-option"><input type="checkbox" value="__blank__" checked> Blank</label>
             </div>
           </div>
         </div>

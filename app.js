@@ -8,6 +8,7 @@ let config = null;
 let filters = {
   stage: new Set(),  // empty = all stages
   status: new Set(), // empty = all statuses
+  cause: new Set(),  // empty = all causes; matches if order.possibleCauses includes any selected value
   search: '',
   days: 7,
   sort: 'created-desc'
@@ -255,11 +256,18 @@ function renderOrderRow(order) {
   `;
 }
 
+function matchesCauseFilter(order) {
+  const causes = order.possibleCauses || [];
+  if (causes.length === 0) return filters.cause.has('__blank__');
+  return causes.some(c => filters.cause.has(c));
+}
+
 function renderOrders(ordersData) {
   // Apply filters
   let filtered = ordersData.filter(order => {
     if (filters.stage.size > 0 && !filters.stage.has(order.currentStage)) return false;
     if (filters.status.size > 0 && !filters.status.has(order.status)) return false;
+    if (filters.cause.size > 0 && !matchesCauseFilter(order)) return false;
     if (filters.search) {
       const search = filters.search.toLowerCase();
       return (
@@ -524,6 +532,7 @@ function getFilteredSortedOrders() {
   let filtered = orders.filter(order => {
     if (filters.stage.size > 0 && !filters.stage.has(order.currentStage)) return false;
     if (filters.status.size > 0 && !filters.status.has(order.status)) return false;
+    if (filters.cause.size > 0 && !matchesCauseFilter(order)) return false;
     if (filters.search) {
       const search = filters.search.toLowerCase();
       return (
@@ -587,6 +596,7 @@ async function init() {
   // Bind event listeners
   setupMultiSelect('stage-filter', 'stage');
   setupMultiSelect('status-filter', 'status');
+  setupMultiSelect('cause-filter', 'cause');
   document.addEventListener('click', e => {
     document.querySelectorAll('.multi-select.open').forEach(ms => {
       if (!ms.contains(e.target)) ms.classList.remove('open');
