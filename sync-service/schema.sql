@@ -27,6 +27,12 @@ CREATE TABLE IF NOT EXISTS parcel_shipments (
 -- already-existing table, so this ALTER keeps schema.sql idempotent/rerunnable.
 ALTER TABLE parcel_shipments ADD COLUMN IF NOT EXISTS unis_created_at TIMESTAMPTZ;
 
+-- Shopify order.totalShippingPriceSet.shopMoney.amount — what the customer was charged for
+-- shipping, vs. freight_cost (what we paid the carrier). Drives the Parcel Cost / CX Ship
+-- Cost tabs' Freight Paid + Difference columns. Same value duplicated across all rows sharing
+-- a po_no (split shipments), matching how service_level is already handled.
+ALTER TABLE parcel_shipments ADD COLUMN IF NOT EXISTS freight_paid NUMERIC(10,2);
+
 CREATE INDEX IF NOT EXISTS idx_parcel_shipments_po_no        ON parcel_shipments (po_no);
 CREATE INDEX IF NOT EXISTS idx_parcel_shipments_created_at   ON parcel_shipments (order_created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_parcel_shipments_shipped_date ON parcel_shipments (shipped_date DESC);

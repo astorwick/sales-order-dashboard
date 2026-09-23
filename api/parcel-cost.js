@@ -26,7 +26,7 @@ module.exports = async (req, res) => {
     const { whereClause, params } = buildShippedDateFilter(req.query);
 
     const { rows } = await db.query(`
-      SELECT po_no, unis_order_no, order_created_at, carrier, service_level, pcs, ship_to_state, weight, freight_cost
+      SELECT po_no, unis_order_no, order_created_at, carrier, service_level, pcs, ship_to_state, weight, freight_cost, freight_paid
       FROM parcel_shipments
       WHERE ${whereClause}
       ORDER BY order_created_at DESC NULLS LAST
@@ -35,15 +35,16 @@ module.exports = async (req, res) => {
     console.log(`Parcel Cost: ${rows.length} shipped orders from Postgres`);
 
     const carrierStats = {
-      ups: { count: 0, freightTotal: 0, freightCount: 0, weightTotal: 0, weightCount: 0 },
-      usps: { count: 0, freightTotal: 0, freightCount: 0, weightTotal: 0, weightCount: 0 },
-      fedex: { count: 0, freightTotal: 0, freightCount: 0, weightTotal: 0, weightCount: 0 },
-      amazon: { count: 0, freightTotal: 0, freightCount: 0, weightTotal: 0, weightCount: 0 }
+      ups: { count: 0, freightTotal: 0, freightCount: 0, freightPaidTotal: 0, weightTotal: 0, weightCount: 0 },
+      usps: { count: 0, freightTotal: 0, freightCount: 0, freightPaidTotal: 0, weightTotal: 0, weightCount: 0 },
+      fedex: { count: 0, freightTotal: 0, freightCount: 0, freightPaidTotal: 0, weightTotal: 0, weightCount: 0 },
+      amazon: { count: 0, freightTotal: 0, freightCount: 0, freightPaidTotal: 0, weightTotal: 0, weightCount: 0 }
     };
-    const overallStats = { freightTotal: 0, freightCount: 0, weightTotal: 0, weightCount: 0 };
+    const overallStats = { freightTotal: 0, freightCount: 0, freightPaidTotal: 0, weightTotal: 0, weightCount: 0 };
 
     const orders = rows.map(row => {
       const freightCost = row.freight_cost !== null ? Number(row.freight_cost) : null;
+      const freightPaid = row.freight_paid !== null ? Number(row.freight_paid) : null;
       const weight = row.weight !== null ? Number(row.weight) : null;
 
       const carrierUpper = (row.carrier || '').toUpperCase();
@@ -59,6 +60,9 @@ module.exports = async (req, res) => {
           stats.freightTotal += freightCost;
           stats.freightCount++;
         }
+        if (freightPaid !== null) {
+          stats.freightPaidTotal += freightPaid;
+        }
         if (weight !== null) {
           stats.weightTotal += weight;
           stats.weightCount++;
@@ -68,6 +72,9 @@ module.exports = async (req, res) => {
       if (freightCost !== null) {
         overallStats.freightTotal += freightCost;
         overallStats.freightCount++;
+      }
+      if (freightPaid !== null) {
+        overallStats.freightPaidTotal += freightPaid;
       }
       if (weight !== null) {
         overallStats.weightTotal += weight;
@@ -83,7 +90,8 @@ module.exports = async (req, res) => {
         pcs: row.pcs !== null && row.pcs !== undefined ? row.pcs : null,
         state: row.ship_to_state || '',
         weight: weight,
-        freightCost: freightCost
+        freightCost: freightCost,
+        freightPaid: freightPaid
       };
     });
 
@@ -92,6 +100,7 @@ module.exports = async (req, res) => {
       count: stats.count,
       avgWeight: stats.weightCount > 0 ? round2(stats.weightTotal / stats.weightCount) : null,
       avgFreight: stats.freightCount > 0 ? round2(stats.freightTotal / stats.freightCount) : null,
+      totalFreightPaid: round2(stats.freightPaidTotal),
       totalFreight: round2(stats.freightTotal)
     });
 
@@ -99,6 +108,7 @@ module.exports = async (req, res) => {
       total: orders.length,
       avgWeight: overallStats.weightCount > 0 ? round2(overallStats.weightTotal / overallStats.weightCount) : null,
       avgFreight: overallStats.freightCount > 0 ? round2(overallStats.freightTotal / overallStats.freightCount) : null,
+      totalFreightPaid: round2(overallStats.freightPaidTotal),
       totalFreight: round2(overallStats.freightTotal),
       ups: carrierSummary(carrierStats.ups),
       usps: carrierSummary(carrierStats.usps),

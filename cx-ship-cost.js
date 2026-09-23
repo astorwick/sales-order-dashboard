@@ -78,7 +78,7 @@ function exportCxShipCostCSV() {
   const filtered = sortCxOrders(filterCxOrders(cxShipCostData));
   if (!filtered.length) return;
 
-  const headers = ['Order #', 'PO #', 'Created', 'Carrier', 'Service Level', 'PCS', 'State', 'Weight', 'Freight Cost'];
+  const headers = ['Order #', 'PO #', 'Created', 'Carrier', 'Service Level', 'PCS', 'State', 'Weight', 'Freight Cost', 'Cust. Paid', 'Difference'];
   const rows = filtered.map(order => [
     csvEscape(order.orderNo),
     csvEscape(order.poNo),
@@ -88,7 +88,9 @@ function exportCxShipCostCSV() {
     csvEscape(order.pcs !== null && order.pcs !== undefined ? order.pcs : ''),
     csvEscape(order.state || ''),
     csvEscape(order.weight !== null && order.weight !== undefined ? order.weight : ''),
-    csvEscape(order.freightCost !== null && order.freightCost !== undefined ? order.freightCost : '')
+    csvEscape(order.freightCost !== null && order.freightCost !== undefined ? order.freightCost : ''),
+    csvEscape(order.freightPaid !== null && order.freightPaid !== undefined ? order.freightPaid : ''),
+    csvEscape(cxFreightDiff(order) !== null ? cxFreightDiff(order) : '')
   ].join(','));
 
   const csv = [headers.join(','), ...rows].join('\n');
@@ -112,6 +114,8 @@ function renderCxCarrierCard(prefix, carrier, total) {
     carrier.avgWeight !== null ? `${carrier.avgWeight} lb` : '-';
   document.getElementById(`cx-summary-${prefix}-avg-freight`).textContent =
     carrier.avgFreight !== null ? formatCurrency(carrier.avgFreight) : '-';
+  document.getElementById(`cx-summary-${prefix}-cust-paid`).textContent =
+    formatCurrency(carrier.totalFreightPaid || 0);
   document.getElementById(`cx-summary-${prefix}-total-freight`).textContent =
     formatCurrency(carrier.totalFreight);
 }
@@ -123,6 +127,8 @@ function renderCxSummary(summary) {
     summary.avgWeight !== null && summary.avgWeight !== undefined ? `${summary.avgWeight} lb` : '-';
   document.getElementById('cx-summary-total-avg-freight').textContent =
     summary.avgFreight !== null && summary.avgFreight !== undefined ? formatCurrency(summary.avgFreight) : '-';
+  document.getElementById('cx-summary-total-cust-paid').textContent =
+    formatCurrency(summary.totalFreightPaid || 0);
   document.getElementById('cx-summary-total-total-freight').textContent =
     formatCurrency(summary.totalFreight || 0);
   renderCxCarrierCard('ups', summary.ups, total);
@@ -131,7 +137,15 @@ function renderCxSummary(summary) {
   renderCxCarrierCard('amazon', summary.amazon, total);
 }
 
+function cxFreightDiff(order) {
+  if (order.freightPaid === null || order.freightPaid === undefined) return null;
+  if (order.freightCost === null || order.freightCost === undefined) return null;
+  return Math.round((order.freightPaid - order.freightCost) * 100) / 100;
+}
+
 function renderCxRow(order) {
+  const diff = cxFreightDiff(order);
+  const diffClass = diff === null ? '' : diff >= 0 ? 'freight-diff-positive' : 'freight-diff-negative';
   return `
     <tr>
       <td><span class="order-number">${escapeCxHtml(order.orderNo)}</span></td>
@@ -143,6 +157,8 @@ function renderCxRow(order) {
       <td>${escapeCxHtml(order.state || '-')}</td>
       <td>${order.weight !== null && order.weight !== undefined ? `${order.weight} lb` : '-'}</td>
       <td>${order.freightCost !== null && order.freightCost !== undefined ? formatCurrency(order.freightCost) : '-'}</td>
+      <td>${order.freightPaid !== null && order.freightPaid !== undefined ? formatCurrency(order.freightPaid) : '-'}</td>
+      <td class="${diffClass}">${diff !== null ? formatCurrency(diff) : '-'}</td>
     </tr>
   `;
 }
@@ -156,7 +172,7 @@ function renderCxOrders(orders) {
   if (orders.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="9" class="empty-state">
+        <td colspan="11" class="empty-state">
           No CX draft-order shipments found for this period
         </td>
       </tr>
@@ -177,7 +193,7 @@ function renderCxOrders(orders) {
 function renderCxLoading() {
   document.getElementById('cx-ship-cost-list').innerHTML = `
     <tr>
-      <td colspan="9" class="loading">
+      <td colspan="11" class="loading">
         <div class="loading-spinner"></div>
         <p>Loading CX ship cost data...</p>
       </td>
@@ -188,7 +204,7 @@ function renderCxLoading() {
 function renderCxError(message) {
   document.getElementById('cx-ship-cost-list').innerHTML = `
     <tr>
-      <td colspan="9" class="error">
+      <td colspan="11" class="error">
         <p>Error: ${message}</p>
         <button onclick="loadCxShipCost()" class="refresh-btn" style="margin-top: 12px;">Retry</button>
       </td>

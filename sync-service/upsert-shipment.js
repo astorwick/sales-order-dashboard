@@ -3,7 +3,7 @@ const db = require('../lib/db');
 const DRAFT_ORDER_SOURCE_NAME = 'shopify_draft_order';
 const COLUMNS = [
   'unis_order_no', 'po_no', 'order_created_at', 'unis_created_at', 'shipped_date', 'carrier', 'tracking_number',
-  'ship_to_state', 'pcs', 'weight', 'freight_cost', 'service_level', 'source_name', 'is_draft_order'
+  'ship_to_state', 'pcs', 'weight', 'freight_cost', 'service_level', 'source_name', 'is_draft_order', 'freight_paid'
 ];
 const CONFLICT_UPDATE_SET = COLUMNS
   .filter(c => c !== 'unis_order_no')
@@ -19,9 +19,10 @@ function toRow(unis, shopifyOrder, unisCreatedAt) {
   const serviceLevel = shopifyOrder ? shopifyOrder.serviceLevel : null;
   const sourceName = shopifyOrder ? shopifyOrder.sourceName : null;
   const isDraftOrder = sourceName === DRAFT_ORDER_SOURCE_NAME;
+  const freightPaid = shopifyOrder && shopifyOrder.freightPaid != null ? shopifyOrder.freightPaid : null;
   return [
     unis.unisOrderNo, unis.poNo, orderCreatedAt, unisCreatedAt || null, unis.shippedDate, unis.carrier, unis.trackingNumber,
-    unis.shipToState, unis.pcs, unis.weight, unis.freightCost, serviceLevel, sourceName, isDraftOrder
+    unis.shipToState, unis.pcs, unis.weight, unis.freightCost, serviceLevel, sourceName, isDraftOrder, freightPaid
   ];
 }
 
@@ -29,7 +30,7 @@ async function upsertShipment(unis, shopifyOrder, unisCreatedAt) {
   const row = toRow(unis, shopifyOrder, unisCreatedAt);
   await db.query(`
     INSERT INTO parcel_shipments (${COLUMNS.join(', ')}, synced_at)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,now())
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,now())
     ON CONFLICT (unis_order_no) DO UPDATE SET ${CONFLICT_UPDATE_SET}
   `, row);
 }
@@ -38,7 +39,7 @@ async function upsertShipment(unis, shopifyOrder, unisCreatedAt) {
 // one per row. Over a public internet connection to Railway, sequential single-row upserts
 // dominated backfill runtime (~1,200+ round-trips per weekly chunk); batching collapses that
 // to a couple of round-trips per chunk. batchSize=500 keeps well under Postgres's 65535
-// query-parameter limit (500 rows * 14 columns = 7,000 params).
+// query-parameter limit (500 rows * 15 columns = 7,500 params).
 async function upsertShipmentsBatch(pairs, batchSize = 500) {
   // Guard against the same unis_order_no appearing more than once in the input — observed
   // under very high-volume pulls (holiday peak weeks, 60+ pages), most likely pagination

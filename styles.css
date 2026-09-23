@@ -387,6 +387,15 @@ h1 {
   color: #4361ee;
 }
 
+/* Freight Paid vs. Freight Cost difference (Parcel Cost, CX Ship Cost tabs) */
+.freight-diff-positive {
+  color: #2a9d8f;
+}
+
+.freight-diff-negative {
+  color: #e63946;
+}
+
 /* Stage Indicator */
 .stage-indicator {
   display: flex;

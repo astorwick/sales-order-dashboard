@@ -555,6 +555,7 @@
           <div class="carrier-card-stats">
             <div class="carrier-stat"><span class="carrier-stat-label">Avg Wgt</span><span id="parcel-cost-summary-total-avg-weight">-</span></div>
             <div class="carrier-stat"><span class="carrier-stat-label">Avg Cost</span><span id="parcel-cost-summary-total-avg-freight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Cust. Paid</span><span id="parcel-cost-summary-total-cust-paid">-</span></div>
             <div class="carrier-stat"><span class="carrier-stat-label">Total</span><span id="parcel-cost-summary-total-total-freight">-</span></div>
           </div>
         </div>
@@ -566,6 +567,7 @@
           <div class="carrier-card-stats">
             <div class="carrier-stat"><span class="carrier-stat-label">Avg Wgt</span><span id="parcel-cost-summary-ups-avg-weight">-</span></div>
             <div class="carrier-stat"><span class="carrier-stat-label">Avg Cost</span><span id="parcel-cost-summary-ups-avg-freight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Cust. Paid</span><span id="parcel-cost-summary-ups-cust-paid">-</span></div>
             <div class="carrier-stat"><span class="carrier-stat-label">Total</span><span id="parcel-cost-summary-ups-total-freight">-</span></div>
           </div>
         </div>
@@ -577,6 +579,7 @@
           <div class="carrier-card-stats">
             <div class="carrier-stat"><span class="carrier-stat-label">Avg Wgt</span><span id="parcel-cost-summary-usps-avg-weight">-</span></div>
             <div class="carrier-stat"><span class="carrier-stat-label">Avg Cost</span><span id="parcel-cost-summary-usps-avg-freight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Cust. Paid</span><span id="parcel-cost-summary-usps-cust-paid">-</span></div>
             <div class="carrier-stat"><span class="carrier-stat-label">Total</span><span id="parcel-cost-summary-usps-total-freight">-</span></div>
           </div>
         </div>
@@ -588,6 +591,7 @@
           <div class="carrier-card-stats">
             <div class="carrier-stat"><span class="carrier-stat-label">Avg Wgt</span><span id="parcel-cost-summary-fedex-avg-weight">-</span></div>
             <div class="carrier-stat"><span class="carrier-stat-label">Avg Cost</span><span id="parcel-cost-summary-fedex-avg-freight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Cust. Paid</span><span id="parcel-cost-summary-fedex-cust-paid">-</span></div>
             <div class="carrier-stat"><span class="carrier-stat-label">Total</span><span id="parcel-cost-summary-fedex-total-freight">-</span></div>
           </div>
         </div>
@@ -599,6 +603,7 @@
           <div class="carrier-card-stats">
             <div class="carrier-stat"><span class="carrier-stat-label">Avg Wgt</span><span id="parcel-cost-summary-amazon-avg-weight">-</span></div>
             <div class="carrier-stat"><span class="carrier-stat-label">Avg Cost</span><span id="parcel-cost-summary-amazon-avg-freight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Cust. Paid</span><span id="parcel-cost-summary-amazon-cust-paid">-</span></div>
             <div class="carrier-stat"><span class="carrier-stat-label">Total</span><span id="parcel-cost-summary-amazon-total-freight">-</span></div>
           </div>
         </div>
@@ -661,11 +666,13 @@
               <th>State</th>
               <th>Weight</th>
               <th>Freight Cost</th>
+              <th>Cust. Paid</th>
+              <th>Difference</th>
             </tr>
           </thead>
           <tbody id="parcel-cost-list">
             <tr>
-              <td colspan="9" class="loading">
+              <td colspan="11" class="loading">
                 <p>Navigate to this tab to load parcel cost data.</p>
               </td>
             </tr>
@@ -687,6 +694,7 @@
           <div class="carrier-card-stats">
             <div class="carrier-stat"><span class="carrier-stat-label">Avg Wgt</span><span id="cx-summary-total-avg-weight">-</span></div>
             <div class="carrier-stat"><span class="carrier-stat-label">Avg Cost</span><span id="cx-summary-total-avg-freight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Cust. Paid</span><span id="cx-summary-total-cust-paid">-</span></div>
             <div class="carrier-stat"><span class="carrier-stat-label">Total</span><span id="cx-summary-total-total-freight">-</span></div>
           </div>
         </div>
@@ -698,6 +706,7 @@
           <div class="carrier-card-stats">
             <div class="carrier-stat"><span class="carrier-stat-label">Avg Wgt</span><span id="cx-summary-ups-avg-weight">-</span></div>
             <div class="carrier-stat"><span class="carrier-stat-label">Avg Cost</span><span id="cx-summary-ups-avg-freight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Cust. Paid</span><span id="cx-summary-ups-cust-paid">-</span></div>
             <div class="carrier-stat"><span class="carrier-stat-label">Total</span><span id="cx-summary-ups-total-freight">-</span></div>
           </div>
         </div>
@@ -709,6 +718,7 @@
           <div class="carrier-card-stats">
             <div class="carrier-stat"><span class="carrier-stat-label">Avg Wgt</span><span id="cx-summary-usps-avg-weight">-</span></div>
             <div class="carrier-stat"><span class="carrier-stat-label">Avg Cost</span><span id="cx-summary-usps-avg-freight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Cust. Paid</span><span id="cx-summary-usps-cust-paid">-</span></div>
             <div class="carrier-stat"><span class="carrier-stat-label">Total</span><span id="cx-summary-usps-total-freight">-</span></div>
           </div>
         </div>
@@ -720,6 +730,7 @@
           <div class="carrier-card-stats">
             <div class="carrier-stat"><span class="carrier-stat-label">Avg Wgt</span><span id="cx-summary-fedex-avg-weight">-</span></div>
             <div class="carrier-stat"><span class="carrier-stat-label">Avg Cost</span><span id="cx-summary-fedex-avg-freight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Cust. Paid</span><span id="cx-summary-fedex-cust-paid">-</span></div>
             <div class="carrier-stat"><span class="carrier-stat-label">Total</span><span id="cx-summary-fedex-total-freight">-</span></div>
           </div>
         </div>
@@ -731,6 +742,7 @@
           <div class="carrier-card-stats">
             <div class="carrier-stat"><span class="carrier-stat-label">Avg Wgt</span><span id="cx-summary-amazon-avg-weight">-</span></div>
             <div class="carrier-stat"><span class="carrier-stat-label">Avg Cost</span><span id="cx-summary-amazon-avg-freight">-</span></div>
+            <div class="carrier-stat"><span class="carrier-stat-label">Cust. Paid</span><span id="cx-summary-amazon-cust-paid">-</span></div>
             <div class="carrier-stat"><span class="carrier-stat-label">Total</span><span id="cx-summary-amazon-total-freight">-</span></div>
           </div>
         </div>
@@ -793,11 +805,13 @@
               <th>State</th>
               <th>Weight</th>
               <th>Freight Cost</th>
+              <th>Cust. Paid</th>
+              <th>Difference</th>
             </tr>
           </thead>
           <tbody id="cx-ship-cost-list">
             <tr>
-              <td colspan="9" class="loading">
+              <td colspan="11" class="loading">
                 <p>Navigate to this tab to load CX ship cost data.</p>
               </td>
             </tr>
