@@ -878,3 +878,28 @@ td.period-30d {
   white-space: nowrap;
   z-index: 100;
 }
+
+/* Order Lookup tab — raw UNIS JSON response */
+.json-result-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #444;
+  margin-bottom: 8px;
+}
+
+.json-result {
+  margin: 0;
+  padding: 16px 20px;
+  font-family: Consolas, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #333;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 70vh;
+  overflow: auto;
+}
+
+.json-result.json-result-error {
+  color: #e63946;
+}

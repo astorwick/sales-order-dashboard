@@ -6,7 +6,7 @@ dashboard's API routes. Ordered by priority.
 ## 1. High priority — no authentication on any API route
 
 **Files**: every `api/*.js` route (`orders.js`, `config.js`, `parcel-sla.js`,
-`parcel-cost.js`, `cx-ship-cost.js`, `duplicate-orders.js`, `inventory.js`, etc.)
+`parcel-cost.js`, `cx-ship-cost.js`, `order-lookup.js`, `inventory.js`, etc.)
 
 Every route only conditionally sets `Access-Control-Allow-Origin` if the
 request's `Origin` header matches an allowlist — but never rejects the request

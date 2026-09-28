@@ -17,7 +17,6 @@ let inventoryLoaded = false;
 let parcelSlaLoaded = false;
 let parcelCostLoaded = false;
 let cxShipCostLoaded = false;
-let duplicateOrdersLoaded = false;
 let uspsTrackerLoaded = false;
 let currentTab = '#/orders';
 let tabLastUpdated = {};
@@ -445,8 +444,8 @@ function refreshCurrentTab() {
     loadParcelCost();
   } else if (currentTab === '#/cx-ship-cost' && typeof loadCxShipCost === 'function') {
     loadCxShipCost();
-  } else if (currentTab === '#/duplicate-orders' && typeof loadDuplicateOrders === 'function') {
-    loadDuplicateOrders();
+  } else if (currentTab === '#/order-lookup' && typeof refreshOrderLookup === 'function') {
+    refreshOrderLookup();
   }
 }
 
@@ -462,7 +461,7 @@ function handleRouteChange() {
   const viewParcelSla = document.getElementById('view-parcel-sla');
   const viewParcelCost = document.getElementById('view-parcel-cost');
   const viewCxShipCost = document.getElementById('view-cx-ship-cost');
-  const viewDuplicateOrders = document.getElementById('view-duplicate-orders');
+  const viewOrderLookup = document.getElementById('view-order-lookup');
 
   // Update active tab
   tabLinks.forEach(link => {
@@ -477,7 +476,7 @@ function handleRouteChange() {
   viewParcelSla.style.display = 'none';
   viewParcelCost.style.display = 'none';
   viewCxShipCost.style.display = 'none';
-  viewDuplicateOrders.style.display = 'none';
+  viewOrderLookup.style.display = 'none';
 
   if (hash === '#/orders' || hash === '') {
     currentTab = '#/orders';
@@ -515,12 +514,8 @@ function handleRouteChange() {
       cxShipCostLoaded = true;
       loadCxShipCost();
     }
-  } else if (hash === '#/duplicate-orders') {
-    viewDuplicateOrders.style.display = 'block';
-    if (!duplicateOrdersLoaded && typeof loadDuplicateOrders === 'function') {
-      duplicateOrdersLoaded = true;
-      loadDuplicateOrders();
-    }
+  } else if (hash === '#/order-lookup') {
+    viewOrderLookup.style.display = 'block';
   }
   // Other tabs show blank (coming soon)
 
