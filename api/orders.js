@@ -1,6 +1,21 @@
 const ShopifyClient = require('../lib/shopify');
 const SAPClient = require('../lib/sap');
 const ThreePLClient = require('../lib/threepl');
+const ExtensivClient = require('../lib/extensiv');
+
+// US: Shopify US store + UNIS. CA: Shopify ember-ca + Extensiv (NAFG).
+const REGIONS = {
+  us: {
+    createShopify: () => new ShopifyClient(),
+    createThreePL: () => new ThreePLClient(),
+    thresholdPrefix: null
+  },
+  ca: {
+    createShopify: () => ShopifyClient.forCA(),
+    createThreePL: () => new ExtensivClient(),
+    thresholdPrefix: 'THRESHOLD_CA_'
+  }
+};
 
 // Stage definitions
 const STAGES = {
@@ -29,13 +44,19 @@ function requireEnvInt(name) {
   return parsed;
 }
 
-function getThresholds() {
+// A region with a thresholdPrefix (CA) uses e.g. THRESHOLD_CA_SHOPIFY_TO_SAP when it's set,
+// and falls back to the US variable (THRESHOLD_SHOPIFY_TO_SAP) when it isn't.
+function getThresholds(thresholdPrefix) {
+  const threshold = name => {
+    const regional = thresholdPrefix && process.env[thresholdPrefix + name];
+    return regional ? requireEnvInt(thresholdPrefix + name) : requireEnvInt('THRESHOLD_' + name);
+  };
   return {
-    [STAGES.SHOPIFY]: requireEnvInt('THRESHOLD_SHOPIFY_TO_SAP'),
-    [STAGES.SAP]: requireEnvInt('THRESHOLD_SAP_TO_3PL_REQUEST'),
-    [STAGES.THREEPL_REQUEST]: requireEnvInt('THRESHOLD_3PL_REQUEST_TO_RECEIVED'),
-    [STAGES.WAREHOUSE_RECEIVED]: requireEnvInt('THRESHOLD_RECEIVED_TO_SHIPPED'),
-    [STAGES.SHIPPED]: requireEnvInt('THRESHOLD_SHIPPED_TO_TRACKING')
+    [STAGES.SHOPIFY]: threshold('SHOPIFY_TO_SAP'),
+    [STAGES.SAP]: threshold('SAP_TO_3PL_REQUEST'),
+    [STAGES.THREEPL_REQUEST]: threshold('3PL_REQUEST_TO_RECEIVED'),
+    [STAGES.WAREHOUSE_RECEIVED]: threshold('RECEIVED_TO_SHIPPED'),
+    [STAGES.SHIPPED]: threshold('SHIPPED_TO_TRACKING')
   };
 }
 
@@ -61,9 +82,15 @@ function isShippableOrder(lineItems) {
   return lineItems.some(isRelevantLineItem);
 }
 
-function determinePossibleCause(shopifyOrder, inventoryByVariantId) {
+function determinePossibleCause(shopifyOrder, inventoryByVariantId, threePlStatus) {
   // Returns array of possible causes for stuck orders
   const causes = [];
+
+  // Every matching 3PL order was canceled in the 3PL (Extensiv only — see
+  // ExtensivClient.getOrderStatuses), so nothing is left in the warehouse to ship
+  if (threePlStatus?.threePlCanceled) {
+    causes.push('3PL Canceled');
+  }
 
   // Check for On Hold fulfillment status
   if (shopifyOrder.isOnHold) {
@@ -191,11 +218,12 @@ function determineCurrentStage(shopifyOrder, sapOrder, threePlStatus) {
   };
 }
 
-async function aggregateOrders(daysBack = 7) {
-  const shopify = new ShopifyClient();
+async function aggregateOrders(daysBack = 7, region = 'us') {
+  const regionConfig = REGIONS[region];
+  const shopify = regionConfig.createShopify();
   const sap = new SAPClient();
-  const threePL = new ThreePLClient();
-  const thresholds = getThresholds();
+  const threePL = regionConfig.createThreePL();
+  const thresholds = getThresholds(regionConfig.thresholdPrefix);
 
   // Fetch all Shopify orders
   const shopifyOrders = await shopify.getOrders(daysBack);
@@ -248,7 +276,7 @@ async function aggregateOrders(daysBack = 7) {
 
   // Aggregate order data
   const aggregatedOrders = partial.map(({ shopifyOrder, sapOrder, threePlStatus, stageInfo, timeInStage, threshold, shippable, status }) => {
-    const possibleCauses = determinePossibleCause(shopifyOrder, inventoryByVariantId);
+    const possibleCauses = determinePossibleCause(shopifyOrder, inventoryByVariantId, threePlStatus);
 
     const stageIndex = STAGE_ORDER.indexOf(stageInfo.stage);
 
@@ -331,7 +359,11 @@ module.exports = async (req, res) => {
 
   try {
     const daysBack = Math.min(parseInt(req.query.days) || 3, 90);
-    const orders = await aggregateOrders(daysBack);
+    const region = req.query.region || 'us';
+    if (!REGIONS[region]) {
+      return res.status(400).json({ success: false, error: `Unknown region: ${region}` });
+    }
+    const orders = await aggregateOrders(daysBack, region);
 
     // Summary stats
     const summary = {
@@ -355,6 +387,7 @@ module.exports = async (req, res) => {
     return res.status(200).json({
       success: true,
       timestamp: new Date().toISOString(),
+      region,
       summary,
       orders: sanitizedOrders
     });

@@ -58,3 +58,15 @@ CREATE TABLE IF NOT EXISTS backfill_progress (
   error         TEXT,
   completed_at  TIMESTAMPTZ
 );
+
+-- Dashboard logins (HTTP Basic auth, checked by middleware.mjs via lib/auth.js). Managed from
+-- the admin-only Users tab; the first admin is created with scripts/create-dashboard-user.js.
+-- Usernames are stored lowercase; password_hash is "scrypt$<salt b64>$<hash b64>".
+CREATE TABLE IF NOT EXISTS dashboard_users (
+  username       TEXT PRIMARY KEY,
+  password_hash  TEXT NOT NULL,
+  is_admin       BOOLEAN NOT NULL DEFAULT FALSE,
+  created_by     TEXT,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);

@@ -5,6 +5,13 @@ dashboard's API routes. Ordered by priority.
 
 ## 1. High priority — no authentication on any API route
 
+**Addressed 2026-10-01**: `middleware.ts` (Vercel Routing Middleware) now requires HTTP Basic
+auth on every request — pages, scripts and `/api/*` — checked against the `dashboard_users`
+table via `lib/auth.js` (scrypt hashes, fails closed if Postgres is unreachable). Admins manage
+users from the Users tab (`api/users.js`). Remaining gaps: no rate limiting on failed logins
+(consider a Vercel Firewall rule), and no logout (Basic auth credentials live until the browser
+closes). The original finding is kept below for context.
+
 **Files**: every `api/*.js` route (`orders.js`, `config.js`, `parcel-sla.js`,
 `parcel-cost.js`, `cx-ship-cost.js`, `order-lookup.js`, `inventory.js`, etc.)
 

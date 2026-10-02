@@ -12,6 +12,7 @@
     <header>
       <h1>Operations Dashboard</h1>
       <div class="refresh-info">
+        <span id="signed-in-user" class="signed-in-user"></span>
         <span id="last-updated">Loading...</span>
         <button id="refresh-btn" class="refresh-btn">Refresh</button>
       </div>
@@ -29,6 +30,7 @@
       <a href="#/canceled" class="tab-link" data-tab="canceled">Canceled Orders</a>
       <a href="#/inventory" class="tab-link" data-tab="inventory">Shopify Run Rate (WIP)</a>
       <a href="#/returns" class="tab-link" data-tab="returns">Returns</a>
+      <a href="#/users" class="tab-link" data-tab="users" id="users-tab-link" style="display: none;">Users</a>
     </nav>
 
     <!-- Orders View -->
@@ -110,6 +112,7 @@
               <label class="multi-select-option"><input type="checkbox" value="Canceled" checked> Canceled</label>
               <label class="multi-select-option"><input type="checkbox" value="Long Address" checked> Long Address</label>
               <label class="multi-select-option"><input type="checkbox" value="OOS" checked> OOS</label>
+              <label class="multi-select-option"><input type="checkbox" value="3PL Canceled" checked> 3PL Canceled</label>
               <label class="multi-select-option"><input type="checkbox" value="__blank__" checked> Blank</label>
             </div>
           </div>
@@ -154,7 +157,7 @@
               <th>Customer</th>
               <th>Vendor(s)</th>
               <th>Created</th>
-              <th>UNIS Shipped</th>
+              <th id="orders-shipped-header">UNIS Shipped</th>
               <th>Tracking #</th>
               <th>Current Stage</th>
               <th>Time in Stage</th>
@@ -175,8 +178,45 @@
       </div>
     </div>
 
-    <!-- Orders CA View -->
-    <div id="view-orders-ca" class="view-panel" style="display: none;">
+    <!-- Users View (admins only) -->
+    <div id="view-users" class="view-panel" style="display: none;">
+      <p class="tab-note">Dashboard logins. Changes apply within a minute. Users sign in with the browser's login prompt; to sign out, close the browser.</p>
+
+      <form id="users-add-form" class="filters" autocomplete="off">
+        <div class="filter-group">
+          <label for="users-new-username">Username:</label>
+          <input type="text" id="users-new-username" required pattern="[A-Za-z0-9._@\-]{2,64}" placeholder="first.last">
+        </div>
+        <div class="filter-group">
+          <label for="users-new-password">Password:</label>
+          <input type="password" id="users-new-password" required minlength="10" autocomplete="new-password" placeholder="10+ characters">
+        </div>
+        <div class="filter-group">
+          <label><input type="checkbox" id="users-new-admin"> Admin</label>
+        </div>
+        <div class="filter-group">
+          <button type="submit" class="refresh-btn">Add User</button>
+        </div>
+      </form>
+
+      <p id="users-message" class="users-message"></p>
+
+      <div class="orders-table-container">
+        <table class="orders-table">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Role</th>
+              <th>Created</th>
+              <th>Last Changed</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="users-list">
+            <tr><td colspan="5" class="loading"><p>Loading users...</p></td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- USPS Tracker View -->
@@ -904,5 +944,6 @@
   <script src="parcel-cost.js"></script>
   <script src="cx-ship-cost.js"></script>
   <script src="order-lookup.js"></script>
+  <script src="users.js"></script>
 </body>
 </html>

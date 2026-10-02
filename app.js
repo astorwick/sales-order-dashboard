@@ -3,6 +3,15 @@
 const API_BASE = '/api';
 
 // State
+// The US and CA Unshipped Orders tabs share one view (#view-orders). ordersRegion is the region
+// on screen; each region's last response is cached so switching tabs doesn't refetch.
+const ORDERS_REGIONS = {
+  us: { tab: '#/orders', shippedLabel: 'UNIS Shipped', csvPrefix: 'unshipped-orders' },
+  ca: { tab: '#/orders-ca', shippedLabel: 'Extensiv Shipped', csvPrefix: 'unshipped-orders-ca' }
+};
+let ordersRegion = 'us';
+let ordersByRegion = {};          // region -> { orders, summary }
+let ordersRequested = new Set();  // regions loaded (or loading) for the current date range
 let orders = [];
 let config = null;
 let filters = {
@@ -154,9 +163,9 @@ async function fetchConfig() {
   }
 }
 
-async function fetchOrders() {
+async function fetchOrders(region) {
   try {
-    const response = await fetch(`${API_BASE}/orders?days=${filters.days}`);
+    const response = await fetch(`${API_BASE}/orders?days=${filters.days}&region=${region}`);
     if (!response.ok) throw new Error('Failed to fetch orders');
     const data = await response.json();
     return data;
@@ -395,6 +404,7 @@ function handleSearchInput(e) {
 
 function handleDaysFilterChange(e) {
   filters.days = parseInt(e.target.value);
+  ordersRequested.clear(); // the other region's cached orders are for the old date range
   loadOrders(); // Reload from API with new date range
 }
 
@@ -404,26 +414,54 @@ function handleSortFilterChange(e) {
 }
 
 async function loadOrders() {
+  // The region is captured up front: if the user switches tabs mid-load, the response is
+  // cached for the region it was requested for but not drawn over the other region's table.
+  const region = ordersRegion;
+  const regionTab = ORDERS_REGIONS[region].tab;
+  ordersRequested.add(region);
   elements.refreshBtn.disabled = true;
   renderLoading();
 
   const startTime = Date.now();
 
   try {
-    const data = await fetchOrders();
+    const data = await fetchOrders(region);
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-    orders = data.orders;
-    renderSummary(data.summary);
-    renderOrders(orders);
+    ordersByRegion[region] = { orders: data.orders, summary: data.summary };
     const updatedText = `Last updated: ${new Date().toLocaleTimeString()} (${elapsed}s)`;
-    tabLastUpdated['#/orders'] = updatedText;
-    if (currentTab === '#/orders') {
+    tabLastUpdated[regionTab] = updatedText;
+    if (ordersRegion === region) {
+      orders = data.orders;
+      renderSummary(data.summary);
+      renderOrders(orders);
+    }
+    if (currentTab === regionTab) {
       elements.lastUpdated.textContent = updatedText;
     }
   } catch (error) {
-    renderError(error.message);
+    ordersRequested.delete(region);
+    if (ordersRegion === region) renderError(error.message);
   } finally {
     elements.refreshBtn.disabled = false;
+  }
+}
+
+// Shows the given region's orders in the shared view: cached data if there is any,
+// otherwise a fresh load.
+function setOrdersRegion(region) {
+  ordersRegion = region;
+  document.getElementById('orders-shipped-header').textContent = ORDERS_REGIONS[region].shippedLabel;
+
+  const cached = ordersByRegion[region];
+  if (ordersRequested.has(region) && cached) {
+    orders = cached.orders;
+    renderSummary(cached.summary);
+    renderOrders(orders);
+  } else if (!ordersRequested.has(region)) {
+    orders = [];
+    loadOrders();
+  } else {
+    renderLoading(); // a load for this region is already in flight
   }
 }
 
@@ -432,7 +470,7 @@ function showTabLastUpdated() {
 }
 
 function refreshCurrentTab() {
-  if (currentTab === '#/orders') {
+  if (currentTab === '#/orders' || currentTab === '#/orders-ca') {
     loadOrders();
   } else if (currentTab === '#/usps-tracker' && typeof loadUSPSTracker === 'function') {
     loadUSPSTracker();
@@ -446,6 +484,8 @@ function refreshCurrentTab() {
     loadCxShipCost();
   } else if (currentTab === '#/order-lookup' && typeof refreshOrderLookup === 'function') {
     refreshOrderLookup();
+  } else if (currentTab === '#/users' && typeof loadUsers === 'function') {
+    loadUsers();
   }
 }
 
@@ -455,13 +495,13 @@ function handleRouteChange() {
   currentTab = hash;
   const tabLinks = document.querySelectorAll('.tab-link');
   const viewOrders = document.getElementById('view-orders');
-  const viewOrdersCa = document.getElementById('view-orders-ca');
   const viewUspsTracker = document.getElementById('view-usps-tracker');
   const viewInventory = document.getElementById('view-inventory');
   const viewParcelSla = document.getElementById('view-parcel-sla');
   const viewParcelCost = document.getElementById('view-parcel-cost');
   const viewCxShipCost = document.getElementById('view-cx-ship-cost');
   const viewOrderLookup = document.getElementById('view-order-lookup');
+  const viewUsers = document.getElementById('view-users');
 
   // Update active tab
   tabLinks.forEach(link => {
@@ -470,19 +510,21 @@ function handleRouteChange() {
 
   // Hide all views
   viewOrders.style.display = 'none';
-  viewOrdersCa.style.display = 'none';
   viewUspsTracker.style.display = 'none';
   viewInventory.style.display = 'none';
   viewParcelSla.style.display = 'none';
   viewParcelCost.style.display = 'none';
   viewCxShipCost.style.display = 'none';
   viewOrderLookup.style.display = 'none';
+  viewUsers.style.display = 'none';
 
   if (hash === '#/orders' || hash === '') {
     currentTab = '#/orders';
     viewOrders.style.display = 'block';
+    setOrdersRegion('us');
   } else if (hash === '#/orders-ca') {
-    viewOrdersCa.style.display = 'block';
+    viewOrders.style.display = 'block';
+    setOrdersRegion('ca');
   } else if (hash === '#/usps-tracker') {
     viewUspsTracker.style.display = 'block';
     if (!uspsTrackerLoaded) {
@@ -516,6 +558,9 @@ function handleRouteChange() {
     }
   } else if (hash === '#/order-lookup') {
     viewOrderLookup.style.display = 'block';
+  } else if (hash === '#/users') {
+    viewUsers.style.display = 'block';
+    if (typeof loadUsers === 'function') loadUsers();
   }
   // Other tabs show blank (coming soon)
 
@@ -566,7 +611,7 @@ function exportOrdersToCSV() {
   const filtered = getFilteredSortedOrders();
   if (filtered.length === 0) return;
 
-  const headers = ['Order #', 'Customer', 'Vendors', 'Created', 'UNIS Shipped', 'Tracking #', 'Current Stage', 'Time in Stage', 'Status', 'Possible Cause', 'Total'];
+  const headers = ['Order #', 'Customer', 'Vendors', 'Created', ORDERS_REGIONS[ordersRegion].shippedLabel, 'Tracking #', 'Current Stage', 'Time in Stage', 'Status', 'Possible Cause', 'Total'];
   const rows = filtered.map(order => [
     csvEscape(order.orderName),
     csvEscape(order.customerName),
@@ -583,7 +628,7 @@ function exportOrdersToCSV() {
 
   const csv = [headers.join(','), ...rows].join('\n');
   const date = new Date().toISOString().slice(0, 10);
-  downloadCSV(`unshipped-orders-${date}.csv`, csv);
+  downloadCSV(`${ORDERS_REGIONS[ordersRegion].csvPrefix}-${date}.csv`, csv);
 }
 
 // Initialize
@@ -607,9 +652,10 @@ async function init() {
   window.addEventListener('hashchange', handleRouteChange);
   handleRouteChange();
 
-  // Load config (non-blocking) and orders
+  // Load config (non-blocking) and orders (handleRouteChange already loaded them when the
+  // page opened on an orders tab)
   fetchConfig().catch(err => console.error('Config error:', err));
-  await loadOrders();
+  if (!ordersRequested.has(ordersRegion)) await loadOrders();
 }
 
 // Start the app when DOM is ready
