@@ -48,7 +48,7 @@ function renderOrderLookupTable(orders) {
   if (orders.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="5" class="empty-state">No orders found</td>
+        <td colspan="7" class="empty-state">No orders found</td>
       </tr>
     `;
   } else {
@@ -61,6 +61,8 @@ function renderOrderLookupTable(orders) {
           <td><span class="order-number">${escapeOrderLookupHtml(o['Order #'] || '-')}</span></td>
           <td>${skus.length ? skus.map(escapeOrderLookupHtml).join('<br>') : '-'}</td>
           <td>${escapeOrderLookupHtml(o['BASE QTY'] ?? '-')}</td>
+          <td>${escapeOrderLookupHtml(o.Status || '-')}</td>
+          <td>${escapeOrderLookupHtml(o.ShippedDate || '-')}</td>
         </tr>
       `;
     }).join('');
