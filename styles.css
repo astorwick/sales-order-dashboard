@@ -775,6 +775,7 @@ td.period-30d {
 
 /* Parcel SLA */
 .summary-card.parcel-ups .value { color: #8B6914; }
+.summary-card.parcel-upsmi .value { color: #5C3A1E; }
 .summary-card.parcel-usps .value { color: #336699; }
 .summary-card.parcel-fedex .value { color: #4D148C; }
 .summary-card.parcel-amazon .value { color: #FF9900; }

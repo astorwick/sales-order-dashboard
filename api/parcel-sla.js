@@ -72,6 +72,7 @@ module.exports = async (req, res) => {
 
     const carrierStats = {
       ups: { count: 0 },
+      upsmi: { count: 0 },
       usps: { count: 0 },
       fedex: { count: 0 },
       amazon: { count: 0 }
@@ -112,6 +113,7 @@ module.exports = async (req, res) => {
       let stats = null;
       if (carrierUpper.includes('USPS')) stats = carrierStats.usps;
       else if (carrierUpper.includes('UPS')) stats = carrierStats.ups;
+      else if (carrierUpper.includes('BTSHP') || carrierUpper.includes('BATCHSHIP')) stats = carrierStats.upsmi;
       else if (carrierUpper.includes('FEDEX') || carrierUpper.includes('FED EX')) stats = carrierStats.fedex;
       else if (carrierUpper.includes('AMAZON') || carrierUpper.includes('AMZN')) stats = carrierStats.amazon;
 
@@ -139,6 +141,7 @@ module.exports = async (req, res) => {
       withinSla,
       pastSla,
       ups: carrierSummary(carrierStats.ups),
+      upsmi: carrierSummary(carrierStats.upsmi),
       usps: carrierSummary(carrierStats.usps),
       fedex: carrierSummary(carrierStats.fedex),
       amazon: carrierSummary(carrierStats.amazon)

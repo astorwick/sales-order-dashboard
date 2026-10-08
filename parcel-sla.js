@@ -46,6 +46,7 @@ function matchesCarrierFilter(carrier, filter) {
   switch (filter) {
     case 'USPS':   return c.includes('USPS');
     case 'UPS':    return !c.includes('USPS') && c.includes('UPS');
+    case 'UPSMI':  return c.includes('BTSHP') || c.includes('BATCHSHIP');
     case 'FEDEX':  return c.includes('FEDEX') || c.includes('FED EX');
     case 'AMAZON': return c.includes('AMAZON') || c.includes('AMZN');
     default:       return true;
@@ -147,6 +148,7 @@ function renderParcelSummary(summary) {
   document.getElementById('parcel-summary-within-sla').textContent = summary.withinSla + withinPct;
   document.getElementById('parcel-summary-past-sla').textContent = summary.pastSla;
   renderParcelCarrierCard('ups', summary.ups, total);
+  renderParcelCarrierCard('upsmi', summary.upsmi, total);
   renderParcelCarrierCard('usps', summary.usps, total);
   renderParcelCarrierCard('fedex', summary.fedex, total);
   renderParcelCarrierCard('amazon', summary.amazon, total);

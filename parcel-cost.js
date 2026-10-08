@@ -36,6 +36,7 @@ function matchesParcelCostCarrierFilter(carrier, filter) {
   switch (filter) {
     case 'USPS':   return c.includes('USPS');
     case 'UPS':    return !c.includes('USPS') && c.includes('UPS');
+    case 'UPSMI':  return c.includes('BTSHP') || c.includes('BATCHSHIP');
     case 'FEDEX':  return c.includes('FEDEX') || c.includes('FED EX');
     case 'AMAZON': return c.includes('AMAZON') || c.includes('AMZN');
     default:       return true;
@@ -132,6 +133,7 @@ function renderParcelCostSummary(summary) {
   document.getElementById('parcel-cost-summary-total-total-freight').textContent =
     formatCurrency(summary.totalFreight || 0);
   renderParcelCostCarrierCard('ups', summary.ups, total);
+  renderParcelCostCarrierCard('upsmi', summary.upsmi, total);
   renderParcelCostCarrierCard('usps', summary.usps, total);
   renderParcelCostCarrierCard('fedex', summary.fedex, total);
   renderParcelCostCarrierCard('amazon', summary.amazon, total);

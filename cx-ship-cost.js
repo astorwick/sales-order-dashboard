@@ -36,6 +36,7 @@ function matchesCxCarrierFilter(carrier, filter) {
   switch (filter) {
     case 'USPS':   return c.includes('USPS');
     case 'UPS':    return !c.includes('USPS') && c.includes('UPS');
+    case 'UPSMI':  return c.includes('BTSHP') || c.includes('BATCHSHIP');
     case 'FEDEX':  return c.includes('FEDEX') || c.includes('FED EX');
     case 'AMAZON': return c.includes('AMAZON') || c.includes('AMZN');
     default:       return true;
@@ -132,6 +133,7 @@ function renderCxSummary(summary) {
   document.getElementById('cx-summary-total-total-freight').textContent =
     formatCurrency(summary.totalFreight || 0);
   renderCxCarrierCard('ups', summary.ups, total);
+  renderCxCarrierCard('upsmi', summary.upsmi, total);
   renderCxCarrierCard('usps', summary.usps, total);
   renderCxCarrierCard('fedex', summary.fedex, total);
   renderCxCarrierCard('amazon', summary.amazon, total);
