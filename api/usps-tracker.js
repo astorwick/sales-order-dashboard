@@ -1,4 +1,4 @@
-const ShopifyClient = require('../lib/shopify');
+const db = require('../lib/db');
 
 const ALLOWED_ORIGINS = [
   'https://sales-order-dashboard-pi.vercel.app',
@@ -23,13 +23,29 @@ module.exports = async (req, res) => {
   try {
     const daysBack = req.query.days === '14' ? 14 : req.query.days === '30' ? 30 : 7;
 
-    const shopify = new ShopifyClient();
-    const fulfillments = await shopify.getUSPSFulfillments(daysBack);
-    console.log(`USPS Tracker: ${fulfillments.length} USPS fulfillments in last ${daysBack} days`);
+    // Filled every 15 min by sync-service/sync-tracking.js (source 'shopify_tracking')
+    const [{ rows }, { rows: stateRows }] = await Promise.all([
+      db.query(`
+        SELECT order_name, order_created_at, fulfilled_at, carrier, service_level, ship_to_state,
+               tracking_number, tracking_url, shipment_status
+        FROM parcel_tracking
+        WHERE order_created_at >= now() - ($1 || ' days')::interval
+      `, [String(daysBack)]),
+      db.query(`SELECT last_synced_through, last_run_status FROM sync_state WHERE source = 'shopify_tracking'`)
+    ]);
+    console.log(`USPS Tracker: ${rows.length} tracking rows from Postgres for last ${daysBack} days`);
 
-    const results = fulfillments.map(f => ({
-      ...f,
-      isPreShipment: PRE_SHIPMENT_STATUSES.has(f.shipmentStatus)
+    const results = rows.map(r => ({
+      orderName: r.order_name,
+      orderCreatedAt: r.order_created_at,
+      fulfilledAt: r.fulfilled_at,
+      carrier: r.carrier,
+      trackingNumber: r.tracking_number || null,
+      trackingUrl: r.tracking_url,
+      shipmentStatus: r.shipment_status,
+      serviceLevel: r.service_level,
+      shipToState: r.ship_to_state,
+      isPreShipment: PRE_SHIPMENT_STATUSES.has(r.shipment_status)
     }));
 
     // Pre-shipment first, then oldest fulfilled date first within each group
@@ -50,7 +66,9 @@ module.exports = async (req, res) => {
         total: results.length,
         preShipment: results.filter(r => r.isPreShipment).length,
         byStatus
-      }
+      },
+      dataAsOf: stateRows[0]?.last_synced_through || null,
+      lastSyncStatus: stateRows[0]?.last_run_status || null
     });
   } catch (error) {
     console.error('USPS Tracker error:', error);

@@ -70,3 +70,38 @@ CREATE TABLE IF NOT EXISTS dashboard_users (
   created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Parcel Delivery Status tab: one row per Shopify tracking number at our fulfillment location,
+-- for orders created in the last ~35 days, every status including DELIVERED. Kept current by
+-- sync-service/sync-tracking.js off an order updated_at watermark (sync_state 'shopify_tracking');
+-- each changed order's rows are replaced wholesale, so voided labels and cancels drop out.
+-- Keyed on (order_name, tracking_number), with '' for a fulfillment that has no tracking number.
+CREATE TABLE IF NOT EXISTS parcel_tracking (
+  order_name          TEXT NOT NULL,          -- Shopify order name, e.g. '#1036954'
+  tracking_number     TEXT NOT NULL,
+  order_created_at    TIMESTAMPTZ NOT NULL,
+  order_updated_at    TIMESTAMPTZ,
+  fulfilled_at        TIMESTAMPTZ,            -- Shopify fulfillment createdAt (label created)
+  carrier             TEXT,                   -- Shopify trackingInfo.company; UPS MI shows as 'UPS' with a 9-prefixed number
+  service_level       TEXT,                   -- Shopify shippingLines[0].title
+  tracking_url        TEXT,
+  shipment_status     TEXT,                   -- fulfillment displayStatus; NOT_AVAILABLE when missing or an Amazon FULFILLED
+  pieces              INTEGER,                -- units on the fulfillment
+  in_transit_at       TIMESTAMPTZ,            -- first carrier scan
+  delivered_at        TIMESTAMPTZ,
+  last_event_status   TEXT,                   -- latest carrier tracking event
+  last_event_at       TIMESTAMPTZ,
+  last_event_city     TEXT,
+  last_event_province TEXT,
+  last_event_message  TEXT,
+  ship_to_state       TEXT,
+  ship_to_city        TEXT,
+  ship_to_zip         TEXT,
+  ship_to_country     TEXT,
+  is_po_box           BOOLEAN NOT NULL DEFAULT FALSE,  -- derived from the street address, which isn't stored
+  is_business         BOOLEAN NOT NULL DEFAULT FALSE,  -- ship-to company field present
+  synced_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (order_name, tracking_number)
+);
+
+CREATE INDEX IF NOT EXISTS idx_parcel_tracking_created_at ON parcel_tracking (order_created_at DESC);

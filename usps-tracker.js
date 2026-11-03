@@ -21,6 +21,7 @@ function formatShipmentStatus(status) {
     MARKED_AS_FULFILLED: 'Label Created',
     SUBMITTED: 'Submitted',
     IN_TRANSIT: 'In Transit',
+    DELAYED: 'Delayed',
     OUT_FOR_DELIVERY: 'Out for Delivery',
     ATTEMPTED_DELIVERY: 'Attempted Delivery',
     DELIVERED: 'Delivered',
@@ -38,7 +39,7 @@ function shipmentStatusClass(status) {
   if (PRE_SHIPMENT_STATUSES.has(status)) return 'missing_tracking';
   if (['IN_TRANSIT', 'OUT_FOR_DELIVERY', 'PICKED_UP', 'SUBMITTED'].includes(status)) return 'warning';
   if (status === 'DELIVERED') return 'complete';
-  if (['FAILURE', 'NOT_DELIVERED', 'ATTEMPTED_DELIVERY'].includes(status)) return 'stuck';
+  if (['FAILURE', 'NOT_DELIVERED', 'ATTEMPTED_DELIVERY', 'DELAYED'].includes(status)) return 'stuck';
   return 'ok';
 }
 
@@ -73,7 +74,7 @@ function getFilteredUSPSShipments() {
 function loadUSPSTracker() {
   const startTime = Date.now();
   const tbody = document.getElementById('usps-tracker-list');
-  tbody.innerHTML = '<tr><td colspan="7" class="loading"><div class="loading-spinner"></div><p>Loading shipments...</p></td></tr>';
+  tbody.innerHTML = '<tr><td colspan="8" class="loading"><div class="loading-spinner"></div><p>Loading shipments...</p></td></tr>';
   document.getElementById('usps-tracker-summary-total').textContent = '-';
   document.getElementById('usps-tracker-summary-pre').textContent = '-';
   fetch(`${API_BASE}/usps-tracker?days=${uspsTrackerDays}`)
@@ -83,11 +84,14 @@ function loadUSPSTracker() {
       uspsTrackerData = data;
       renderUSPSTracker();
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-      tabLastUpdated['#/usps-tracker'] = `Last updated: ${new Date().toLocaleTimeString()} (${elapsed}s)`;
+      // Rows come from a 15-minute Shopify sync, so show how fresh the data itself is
+      const asOf = data.dataAsOf ? new Date(data.dataAsOf).toLocaleString() : 'never';
+      const syncNote = data.lastSyncStatus === 'error' ? ' — last sync failed' : '';
+      tabLastUpdated['#/usps-tracker'] = `Last updated: ${new Date().toLocaleTimeString()} (${elapsed}s) · Shopify data as of ${asOf}${syncNote}`;
       showTabLastUpdated();
     })
     .catch(err => {
-      tbody.innerHTML = `<tr><td colspan="7" class="loading"><p>Error loading data: ${escapeHtml(err.message)}</p></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" class="loading"><p>Error loading data: ${escapeHtml(err.message)}</p></td></tr>`;
     });
 }
 
@@ -245,7 +249,7 @@ function applyUSPSFiltersAndRender() {
   const tbody = document.getElementById('usps-tracker-list');
 
   if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="7" class="loading"><p>No shipments match the current filters.</p></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="loading"><p>No shipments match the current filters.</p></td></tr>';
     return;
   }
 
@@ -261,6 +265,7 @@ function applyUSPSFiltersAndRender() {
         <td>${s.fulfilledAt ? formatTime(Math.floor((Date.now() - new Date(s.fulfilledAt)) / 60000)) : '—'}</td>
         <td>${escapeHtml(s.carrier || '—')}</td>
         <td>${escapeHtml(s.serviceLevel || '—')}</td>
+        <td>${escapeHtml(s.shipToState || '—')}</td>
         <td>${trackingDisplay}</td>
         <td><span class="status-badge ${statusClass}">${escapeHtml(formatShipmentStatus(s.shipmentStatus))}</span></td>
       </tr>
@@ -302,13 +307,14 @@ function exportUSPSTrackerCSV() {
   const filtered = getFilteredUSPSShipments();
   if (!filtered.length) return;
 
-  const headers = ['Order #', 'Fulfilled', 'Time Since Fulfilled', 'Carrier', 'Service Level', 'Tracking #', 'Shipment Status'];
+  const headers = ['Order #', 'Fulfilled', 'Time Since Fulfilled', 'Carrier', 'Service Level', 'State', 'Tracking #', 'Shipment Status'];
   const rows = filtered.map(s => [
     csvEscape(s.orderName),
     csvEscape(s.fulfilledAt ? new Date(s.fulfilledAt).toLocaleString() : ''),
     csvEscape(s.fulfilledAt ? formatTime(Math.floor((Date.now() - new Date(s.fulfilledAt)) / 60000)) : ''),
     csvEscape(s.carrier || ''),
     csvEscape(s.serviceLevel || ''),
+    csvEscape(s.shipToState || ''),
     csvEscape(s.trackingNumber || ''),
     csvEscape(formatShipmentStatus(s.shipmentStatus))
   ].join(','));
