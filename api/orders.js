@@ -225,6 +225,16 @@ async function aggregateOrders(daysBack = 7, region = 'us') {
   const threePL = regionConfig.createThreePL();
   const thresholds = getThresholds(regionConfig.thresholdPrefix);
 
+  // UNIS (US) can be fetched by date window without knowing the order names, so start it now
+  // and let it run alongside the Shopify fetch — total time is the slower of the two rather
+  // than the sum. Extensiv (CA) has no such method; it searches by PO numbers after Shopify.
+  // The no-op catch only stops an unhandled-rejection crash if Shopify fails first; a UNIS
+  // failure still surfaces when the promise is awaited below.
+  const threePlPrefetch = threePL.fetchNewestRowsByPoSince
+    ? threePL.fetchNewestRowsByPoSince(new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000).toISOString())
+    : null;
+  threePlPrefetch?.catch(() => {});
+
   // Fetch all Shopify orders
   const shopifyOrders = await shopify.getOrders(daysBack);
 
@@ -236,13 +246,12 @@ async function aggregateOrders(daysBack = 7, region = 'us') {
   // This format is used as External Reference in SAP and PONo in UNIS
   const orderNames = shopifyOrders.map(o => o.name);
 
-  // Earliest Shopify order in the set — bounds the UNIS window search (Extensiv ignores it)
-  const since = shopifyOrders.reduce((min, o) => (o.createdAt < min ? o.createdAt : min), shopifyOrders[0].createdAt);
-
   // Batch fetch from SAP and 3PL (single query each instead of per-order)
   const [sapOrders, threePlStatuses] = await Promise.all([
     sap.getSalesOrders(orderNames, daysBack),
-    threePL.getOrderStatuses(orderNames, { since })
+    threePlPrefetch
+      ? threePlPrefetch.then(rowsByPo => threePL.getOrderStatuses(orderNames, { rowsByPo }))
+      : threePL.getOrderStatuses(orderNames)
   ]);
 
   // First pass: stage/status per order, without possible causes yet — status has to be known
