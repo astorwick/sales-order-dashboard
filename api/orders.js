@@ -236,10 +236,13 @@ async function aggregateOrders(daysBack = 7, region = 'us') {
   // This format is used as External Reference in SAP and PONo in UNIS
   const orderNames = shopifyOrders.map(o => o.name);
 
+  // Earliest Shopify order in the set — bounds the UNIS window search (Extensiv ignores it)
+  const since = shopifyOrders.reduce((min, o) => (o.createdAt < min ? o.createdAt : min), shopifyOrders[0].createdAt);
+
   // Batch fetch from SAP and 3PL (single query each instead of per-order)
   const [sapOrders, threePlStatuses] = await Promise.all([
     sap.getSalesOrders(orderNames, daysBack),
-    threePL.getOrderStatuses(orderNames)
+    threePL.getOrderStatuses(orderNames, { since })
   ]);
 
   // First pass: stage/status per order, without possible causes yet — status has to be known

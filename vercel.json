@@ -7,6 +7,7 @@
     "api/parcel-sla.js": { "maxDuration": 60 },
     "api/parcel-cost.js": { "maxDuration": 60 },
     "api/cx-ship-cost.js": { "maxDuration": 60 },
-    "api/usps-tracker.js": { "maxDuration": 60 }
+    "api/usps-tracker.js": { "maxDuration": 60 },
+    "api/orders.js": { "maxDuration": 300 }
   }
 }

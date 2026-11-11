@@ -166,7 +166,11 @@ async function fetchConfig() {
 async function fetchOrders(region) {
   try {
     const response = await fetch(`${API_BASE}/orders?days=${filters.days}&region=${region}`);
-    if (!response.ok) throw new Error('Failed to fetch orders');
+    if (!response.ok) {
+      // Surface the API's own message (e.g. "UNIS isn't responding...") instead of a generic one
+      const body = await response.json().catch(() => null);
+      throw new Error(body?.error || `Failed to fetch orders (HTTP ${response.status})`);
+    }
     const data = await response.json();
     return data;
   } catch (error) {
