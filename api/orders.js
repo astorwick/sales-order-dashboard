@@ -82,6 +82,10 @@ function isShippableOrder(lineItems) {
   return lineItems.some(isRelevantLineItem);
 }
 
+// SKUs flagged as a possible cause when they appear on a stuck order (each must also be
+// listed in the Cause filter in index.html)
+const STUCK_CAUSE_SKUS = ['CM251602AM', 'CM251607AM', 'CM251407AM'];
+
 function determinePossibleCause(shopifyOrder, inventoryByVariantId, threePlStatus) {
   // Returns array of possible causes for stuck orders
   const causes = [];
@@ -113,6 +117,12 @@ function determinePossibleCause(shopifyOrder, inventoryByVariantId, threePlStatu
     .some(item => item.variantId && (inventoryByVariantId.get(item.variantId) ?? 1) <= 0);
   if (isOOS) {
     causes.push('OOS');
+  }
+
+  // Specific SKUs known to hold orders up — each one present is its own cause, labeled by SKU
+  const orderSkus = new Set((shopifyOrder.lineItems || []).map(item => item.sku));
+  for (const sku of STUCK_CAUSE_SKUS) {
+    if (orderSkus.has(sku)) causes.push(sku);
   }
 
   return causes;
