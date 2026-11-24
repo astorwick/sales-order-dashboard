@@ -238,6 +238,7 @@ function renderOrderRow(order) {
       <td>
         <span class="order-number">${escapeHtml(order.orderName)}</span>
       </td>
+      <td>${order.shopifyOrderId ? escapeHtml(order.shopifyOrderId) : '-'}</td>
       <td>${escapeHtml(order.customerName)}</td>
       <td><span class="vendor-list ${order.shippable === false ? 'not-shippable' : ''}">${vendorDisplay}</span></td>
       <td>${formatDate(order.createdAt)}</td>
@@ -284,6 +285,7 @@ function renderOrders(ordersData) {
       const search = filters.search.toLowerCase();
       return (
         order.orderName.toLowerCase().includes(search) ||
+        (order.shopifyOrderId || '').includes(search) ||
         order.customerName.toLowerCase().includes(search) ||
         (order.email && order.email.toLowerCase().includes(search))
       );
@@ -318,7 +320,7 @@ function renderOrders(ordersData) {
   if (filtered.length === 0) {
     elements.ordersList.innerHTML = `
       <tr>
-        <td colspan="10" class="empty-state">
+        <td colspan="12" class="empty-state">
           No orders match the current filters
         </td>
       </tr>
@@ -332,7 +334,7 @@ function renderOrders(ordersData) {
 function renderLoading() {
   elements.ordersList.innerHTML = `
     <tr>
-      <td colspan="10" class="loading">
+      <td colspan="12" class="loading">
         <div class="loading-spinner"></div>
         <p>Loading orders...</p>
       </td>
@@ -343,7 +345,7 @@ function renderLoading() {
 function renderError(message) {
   elements.ordersList.innerHTML = `
     <tr>
-      <td colspan="10" class="error">
+      <td colspan="12" class="error">
         <p>Error: ${message}</p>
         <button onclick="loadOrders()" class="refresh-btn" style="margin-top: 12px;">Retry</button>
       </td>
@@ -581,6 +583,7 @@ function getFilteredSortedOrders() {
       const search = filters.search.toLowerCase();
       return (
         order.orderName.toLowerCase().includes(search) ||
+        (order.shopifyOrderId || '').includes(search) ||
         order.customerName.toLowerCase().includes(search) ||
         (order.email && order.email.toLowerCase().includes(search))
       );
@@ -615,9 +618,10 @@ function exportOrdersToCSV() {
   const filtered = getFilteredSortedOrders();
   if (filtered.length === 0) return;
 
-  const headers = ['Order #', 'Customer', 'Vendors', 'Created', ORDERS_REGIONS[ordersRegion].shippedLabel, 'Tracking #', 'Current Stage', 'Time in Stage', 'Status', 'Possible Cause', 'Total'];
+  const headers = ['Order #', 'Order ID', 'Customer', 'Vendors', 'Created', ORDERS_REGIONS[ordersRegion].shippedLabel, 'Tracking #', 'Current Stage', 'Time in Stage', 'Status', 'Possible Cause', 'Total'];
   const rows = filtered.map(order => [
     csvEscape(order.orderName),
+    csvEscape(order.shopifyOrderId || ''),
     csvEscape(order.customerName),
     csvEscape(order.vendors ? order.vendors.join(', ') : ''),
     csvEscape(order.createdAt ? new Date(order.createdAt).toLocaleString() : ''),

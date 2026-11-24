@@ -305,6 +305,7 @@ async function aggregateOrders(daysBack = 7, region = 'us') {
     return {
       // Shopify data
       id: shopifyOrder.id,
+      shopifyOrderId: String(shopifyOrder.id || "").split("/").pop(), // numeric ID from gid://shopify/Order/<id>
       orderNumber: shopifyOrder.orderNumber,
       orderName: shopifyOrder.name,
       customerName: shopifyOrder.customerName,
