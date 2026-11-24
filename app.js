@@ -13,6 +13,7 @@ let ordersRegion = 'us';
 let ordersByRegion = {};          // region -> { orders, summary }
 let ordersRequested = new Set();  // regions loaded (or loading) for the current date range
 let orders = [];
+let ordersPage = 1;
 let config = null;
 let filters = {
   stage: new Set(),  // empty = all stages
@@ -238,7 +239,6 @@ function renderOrderRow(order) {
       <td>
         <span class="order-number">${escapeHtml(order.orderName)}</span>
       </td>
-      <td>${order.shopifyOrderId ? escapeHtml(order.shopifyOrderId) : '-'}</td>
       <td>${escapeHtml(order.customerName)}</td>
       <td><span class="vendor-list ${order.shippable === false ? 'not-shippable' : ''}">${vendorDisplay}</span></td>
       <td>${formatDate(order.createdAt)}</td>
@@ -275,7 +275,10 @@ function matchesCauseFilter(order) {
   return causes.some(c => filters.cause.has(c));
 }
 
-function renderOrders(ordersData) {
+// Any filter/search/sort/reload starts back at page 1; only Prev/Next passes resetPage = false.
+function renderOrders(ordersData, resetPage = true) {
+  if (resetPage) ordersPage = 1;
+
   // Apply filters
   let filtered = ordersData.filter(order => {
     if (filters.stage.size > 0 && !filters.stage.has(order.currentStage)) return false;
@@ -320,21 +323,29 @@ function renderOrders(ordersData) {
   if (filtered.length === 0) {
     elements.ordersList.innerHTML = `
       <tr>
-        <td colspan="12" class="empty-state">
+        <td colspan="11" class="empty-state">
           No orders match the current filters
         </td>
       </tr>
     `;
+    renderPaginationControls('orders-pagination', 1, 1, () => {});
     return;
   }
 
-  elements.ordersList.innerHTML = filtered.map(renderOrderRow).join('');
+  const { pageItems, currentPage, totalPages } = paginate(filtered, ordersPage);
+  ordersPage = currentPage;
+  elements.ordersList.innerHTML = pageItems.map(renderOrderRow).join('');
+  renderPaginationControls('orders-pagination', currentPage, totalPages, page => {
+    ordersPage = page;
+    renderOrders(orders, false);
+  });
 }
 
 function renderLoading() {
+  renderPaginationControls('orders-pagination', 1, 1, () => {});
   elements.ordersList.innerHTML = `
     <tr>
-      <td colspan="12" class="loading">
+      <td colspan="11" class="loading">
         <div class="loading-spinner"></div>
         <p>Loading orders...</p>
       </td>
@@ -343,9 +354,10 @@ function renderLoading() {
 }
 
 function renderError(message) {
+  renderPaginationControls('orders-pagination', 1, 1, () => {});
   elements.ordersList.innerHTML = `
     <tr>
-      <td colspan="12" class="error">
+      <td colspan="11" class="error">
         <p>Error: ${message}</p>
         <button onclick="loadOrders()" class="refresh-btn" style="margin-top: 12px;">Retry</button>
       </td>
