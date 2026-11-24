@@ -219,7 +219,7 @@ async function loadParcelCost() {
   const startTime = Date.now();
 
   try {
-    const range = parcelCostCustomRange || { days: parcelCostDaysFilter };
+    const range = parcelCostCustomRange || (parcelCostDaysFilter === 'today' ? pacificTodayRange() : { days: parcelCostDaysFilter });
     const data = await fetchParcelCost(range);
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
     parcelCostData = data.orders;
@@ -245,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (customRangeGroup) customRangeGroup.style.display = 'none';
     parcelCostCustomRange = null;
-    parcelCostDaysFilter = parseInt(e.target.value);
+    parcelCostDaysFilter = e.target.value === 'today' ? 'today' : parseInt(e.target.value);
     loadParcelCost();
   });
 

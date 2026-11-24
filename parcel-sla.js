@@ -226,7 +226,7 @@ async function loadParcelSla() {
   const startTime = Date.now();
 
   try {
-    const range = parcelCustomRange || { days: parcelDaysFilter };
+    const range = parcelCustomRange || (parcelDaysFilter === 'today' ? pacificTodayRange() : { days: parcelDaysFilter });
     const data = await fetchParcelSla(range);
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
     parcelSlaData = data.orders;
@@ -252,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (customRangeGroup) customRangeGroup.style.display = 'none';
     parcelCustomRange = null;
-    parcelDaysFilter = parseInt(e.target.value);
+    parcelDaysFilter = e.target.value === 'today' ? 'today' : parseInt(e.target.value);
     loadParcelSla();
   });
 

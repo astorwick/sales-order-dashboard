@@ -97,6 +97,13 @@ function renderPaginationControls(containerId, currentPage, totalPages, onPageCh
   container.querySelector('[data-action="next"]').addEventListener('click', () => onPageChange(currentPage + 1));
 }
 
+// "Today" date-range option (shared by the parcel tabs): today as a Pacific calendar day,
+// computed at load time so a tab left open past midnight rolls over on refresh.
+function pacificTodayRange() {
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date()); // YYYY-MM-DD
+  return { startDate: today, endDate: today };
+}
+
 // Utility Functions
 function escapeHtml(str) {
   if (!str) return '';

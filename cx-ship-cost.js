@@ -219,7 +219,7 @@ async function loadCxShipCost() {
   const startTime = Date.now();
 
   try {
-    const range = cxCustomRange || { days: cxDaysFilter };
+    const range = cxCustomRange || (cxDaysFilter === 'today' ? pacificTodayRange() : { days: cxDaysFilter });
     const data = await fetchCxShipCost(range);
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
     cxShipCostData = data.orders;
@@ -245,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (customRangeGroup) customRangeGroup.style.display = 'none';
     cxCustomRange = null;
-    cxDaysFilter = parseInt(e.target.value);
+    cxDaysFilter = e.target.value === 'today' ? 'today' : parseInt(e.target.value);
     loadCxShipCost();
   });
 
